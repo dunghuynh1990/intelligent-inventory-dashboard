@@ -27,6 +27,7 @@ const emptyFilters: InventoryFilterCriteria = {
   ageBand: '',
   agingOnly: false,
   dataIssuesOnly: false,
+  actionFilter: 'any',
 }
 const noVehicles: Vehicle[] = []
 
@@ -188,6 +189,13 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               onShowDataIssues={() => setFilters({ ...emptyFilters, dataIssuesOnly: true })}
             />
           )}
+          {vehicles !== null && (
+            <p className="inventory-result-count" role="status">
+              {filteredVehicles.length === 0
+                ? `Showing 0 of 0`
+                : `Showing 1-${filteredVehicles.length} of ${filteredVehicles.length}`}
+            </p>
+          )}
           {vehicles !== null && vehicles.length === 0 && !isLoading && (
             <p className="inventory-empty">No vehicles in inventory.</p>
           )}
@@ -197,7 +205,6 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                 filters={filters}
                 makes={makes}
                 models={models}
-                showClearButton={filteredVehicles.length > 0}
                 onChange={setFilters}
                 onMakeChange={handleMakeChange}
                 onReset={() => setFilters(emptyFilters)}
@@ -205,13 +212,6 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               {filteredVehicles.length === 0 ? (
                 <div className="inventory-no-results">
                   <p>No vehicles match these filters.</p>
-                  <button
-                    className="clear-filters-button"
-                    type="button"
-                    onClick={() => setFilters(emptyFilters)}
-                  >
-                    Clear filters
-                  </button>
                 </div>
               ) : (
                 <InventoryTable

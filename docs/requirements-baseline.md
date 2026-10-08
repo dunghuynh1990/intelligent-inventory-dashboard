@@ -189,7 +189,7 @@ When implementing a WBS task:
 - **Given:** The generated vehicle list and reference date R.
 - **When:** Only the action filter `No action yet` is applied.
 - **Then:** Every returned vehicle is aging and has no current action, and the count equals the number of such vehicles in the data.
-- **Source:** CR-02 (README s6 Action); PROPOSED.
+- **Source:** CR-02 (README s6 Action); owner-approved for WBS 4.17 assessment scope on 2026-10-09.
 - **Linked assumptions:** A-05, A-17
 - **Linked design choices:** C-21
 - **Test level:** Unit
@@ -200,7 +200,7 @@ When implementing a WBS task:
 - **Given:** The generated vehicle list with some saved actions.
 - **When:** Only the action filter `Has an action` is applied.
 - **Then:** Every returned vehicle has a current action, and the count equals the number of such vehicles in the data.
-- **Source:** CR-02; PROPOSED.
+- **Source:** CR-02; owner-approved for WBS 4.17 assessment scope on 2026-10-09.
 - **Linked assumptions:** A-17
 - **Linked design choices:** C-21
 - **Test level:** Unit
@@ -222,7 +222,7 @@ When implementing a WBS task:
 - **Given:** The service returns 200 vehicles and the default page size.
 - **When:** The dashboard finishes loading.
 - **Then:** 20 rows are shown, the count reads `Showing 1-20 of 200` and the pager shows page 1 of 10.
-- **Source:** CR-03, CR-04 (README s7-s8); PROPOSED.
+- **Source:** CR-03, CR-04 (README s7-s8); owner-approved for WBS 4.17 assessment result-count behavior on 2026-10-09. Page-size and pager behavior remain assigned to WBS 4.18.
 - **Linked assumptions:** A-11
 - **Linked design choices:** C-20
 - **Test level:** Component
@@ -700,7 +700,7 @@ When implementing a WBS task:
 | A-14 | Search matches stock number, VIN, make and model, case-insensitive. Owner-approved for the assessment 2026-10-09; additional identifiers remain open (OQ-01). | AC-R1-03/13 |
 | A-15 | An action must be selected; a note alone is insufficient. | AC-R3-04 |
 | A-16 | Calendar day uses browser local date and local start of day; time is ignored. | AC-R2-04, AC-R2-11 |
-| A-17 | PROPOSED: `No action yet` returns aging vehicles without a current action; `Has an action` returns vehicles with a current action. | AC-R1-14/15 |
+| A-17 | `No action yet` returns aging vehicles without a current action; `Has an action` returns vehicles with a current action. Owner-approved for WBS 4.17 assessment scope on 2026-10-09. | AC-R1-14/15 |
 | A-18 | PROPOSED: Freshness is normal under 15 minutes, amber from 15, and warning from 60; these are placeholders. | AC-R4-07, AC-R5-03/04/05 |
 | A-19 | PROPOSED: Turning aging soon means 7 or fewer days to threshold (days 84-90); it is informational and actions remain aging-only. | AC-R2-17/18 |
 | A-20 | PROPOSED: Saved actions carry their logged time; calendar days are counted; actions older than 14 days get a check-progress flag (placeholder). | AC-R3-07/08 |
@@ -768,7 +768,7 @@ When implementing a WBS task:
 | C-18 | Without a selected sort, display order is fixed by vehicle ID. Optional column sorting (Nice, CR-05) overrides it for the session: unknown values last, ties by vehicle ID, not persisted. If dropped, sorting is out of scope. | AC-R1-11, AC-R1-19/20 |
 | C-19 | Impossible filter combinations are allowed and show no-results with Clear filters. | AC-R1-09, AC-R4-03 |
 | C-20 | Client-side pagination uses page sizes 10, 20, 50 and 100 (default 20), first/previous/numbered/next/last controls, resets to page 1 when a filter changes, clamps when results shrink, and does not persist page or page size. Go-to-page is not built. | AC-R1-01, AC-R1-16/17/18 |
-| C-21 | Core module adds pure functions for search over stock number, VIN, make and model; action filter; entry-date issue classification; pagination; and freshness level. If built: `sortRows` and early-warning rule. Owner-approved for WBS 4.16 on 2026-10-09 only for VIN search and entry-date issue classification; action filtering, pagination, freshness, sorting and early warning remain subject to their own scope and approval. | AC-R1-03, AC-R1-13 to AC-R1-16, AC-R1-19, AC-R2-14/17, AC-R5-03 |
+| C-21 | Core module adds pure functions for search over stock number, VIN, make and model; action filter; entry-date issue classification; pagination; and freshness level. If built: `sortRows` and early-warning rule. Owner-approved for WBS 4.16 assessment scope on 2026-10-09 for VIN search and entry-date issue classification, and for WBS 4.17 action filtering on 2026-10-09; pagination, freshness, sorting and early warning remain subject to their own scope and approval. | AC-R1-03, AC-R1-13 to AC-R1-16, AC-R1-19, AC-R2-14/17, AC-R5-03 |
 | C-22 | One early-warning window constant (7 days, days 84-90) drives the summary card, `Due in N days` row tag and preset; the mockup's separate day-80 tag is not adopted. Nice. | AC-R2-17/18 |
 | C-23 | Only saved actions persist (C-15). Sort, page, page size, density and saved views are not persisted. | AC-R3-02 |
 | C-24 | Freshness uses named placeholder constants (15 and 60 minutes) and a pure level function. Header shows reference date, last-refreshed time and time ago; a warning banner with Refresh now appears from 60 minutes. Failed refresh keeps last data with a Retry banner; failed first load shows AC-R4-04. | AC-R4-06, AC-R5-03/04/05/06 |
@@ -944,14 +944,14 @@ Before implementing a WBS task, GitHub Copilot must:
 
 # 12. Change Request Impact (v4)
 
-The following triage records the 32 change-request items against Baseline v3. Dispositions remain proposals pending owner confirmation (OQ-14), except the individually marked owner-approved CR-01, CR-06 and CR-32 assessment scope confirmed on 2026-10-09. Plan tiers are Must, Should and Nice; acceptance-criteria priority uses Must and Should, so Nice plan items are Should in the AC register. Dropped rows refer to Plan v5.
+The following triage records the 32 change-request items against Baseline v3. Dispositions remain proposals pending owner confirmation (OQ-14), except the individually marked owner-approved CR-01, CR-02, CR-04, CR-06 and CR-32 assessment scope confirmed on 2026-10-09. Plan tiers are Must, Should and Nice; acceptance-criteria priority uses Must and Should, so Nice plan items are Should in the AC register. Dropped rows refer to Plan v5.
 
 | CR ID | Change | Disposition / tier | Plan WBS | Requirement links |
 |---|---|---|---|---|
 | CR-01 | VIN column, VIN search and match highlight | Owner-approved: Adopt / Should (assessment scope) | 4.12, 4.13, 4.16 | AC-R1-12/13; A-14/21; OQ-01; C-13/21 |
-| CR-02 | Action filter: Any / No action yet / Has an action | Adopt / Should | 4.12, 4.17 | AC-R1-14/15; A-17; C-21 |
+| CR-02 | Action filter: Any / No action yet / Has an action | Owner-approved: Adopt / Should (WBS 4.17 assessment scope) | 4.12, 4.17 | AC-R1-14/15; A-17; C-21 |
 | CR-03 | Client pagination and page-size controls | Adopt with changes / Should | 4.12, 4.18 | AC-R1-01/16/17/18; A-11; C-20/23; OQ-12 |
-| CR-04 | Result count and removable filter chips | Adopt / Should | 4.17 | AC-R1-17 |
+| CR-04 | Result count and removable filter chips | Owner-approved: Adopt / Should (WBS 4.17 assessment scope; pager remains WBS 4.18) | 4.17 | AC-R1-17 |
 | CR-05 | Eight-column sorting, three-state, unknown-last, ID tie-break | Adopt, gated / Nice | 4.24 | AC-R1-11/19/20; C-18/21; D32 |
 | CR-06 | Missing/invalid/future date issue treatment and Data issues view | Owner-approved: Adopt / Should (assessment scope) | 4.12, 4.13, 4.16 | AC-R2-14/15/16; A-12; OQ-05; C-25 |
 | CR-07 | Action logged time | Adopt / Should | 4.13, 4.19 | AC-R3-07; A-20; C-28 |
@@ -1012,3 +1012,4 @@ The following triage records the 32 change-request items against Baseline v3. Di
 - Updated Coverage, Release DoD RL-02/RL-04/RL-05/RL-08, the CR Should realism guidance and README interpretation items #2/#3/#7/#9-#15.
 - Kept Task DoD T-01 to T-08 unchanged. The current baseline has no DoD Example section; no example content was synthesized.
 - Owner-confirmed the assessment scope for CR-01, CR-06 and CR-32 on 2026-10-09. Updated linked assumptions, design-choice scope notes, acceptance-criterion sources and OQ-01/OQ-05; production questions and unrelated CR dispositions remain open or proposed.
+- Owner-confirmed CR-02 and CR-04 for WBS 4.17 on 2026-10-09. A-17 and the action-filter portion of C-21 are approved for this assessment task; AC-R1-17's result count is in scope here, while page-size and pager behavior remain assigned to WBS 4.18. Other CR dispositions remain open or proposed.

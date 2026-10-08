@@ -284,9 +284,12 @@ describe('App', () => {
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
     await user.click(within(row).getByRole('button', { name: 'Edit action' }))
-    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
-    await user.clear(screen.getByLabelText('Note (optional)'))
-    await user.type(screen.getByLabelText('Note (optional)'), 'New plan')
+    const actionForm = within(
+      screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
+    )
+    await user.selectOptions(actionForm.getByLabelText('Action'), 'Price Reduction Planned')
+    await user.clear(actionForm.getByLabelText('Note (optional)'))
+    await user.type(actionForm.getByLabelText('Note (optional)'), 'New plan')
     await user.click(screen.getByRole('button', { name: 'Save action' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -332,7 +335,10 @@ describe('App', () => {
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
     await user.click(within(row).getByRole('button', { name: 'Propose action' }))
-    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
+    const actionForm = within(
+      screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
+    )
+    await user.selectOptions(actionForm.getByLabelText('Action'), 'Price Reduction Planned')
     await user.click(screen.getByRole('button', { name: 'Save action' }))
 
     expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
@@ -363,8 +369,11 @@ describe('App', () => {
     const agingVehicleRow = within(firstTable).getByRole('row', { name: /STK-0003/ })
 
     await user.click(within(agingVehicleRow).getByRole('button', { name: 'Propose action' }))
-    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
-    await user.type(screen.getByLabelText('Note (optional)'), 'Revisit next week')
+    const actionForm = within(
+      screen.getByRole('form', { name: 'Propose an action for STK-0003' }),
+    )
+    await user.selectOptions(actionForm.getByLabelText('Action'), 'Price Reduction Planned')
+    await user.type(actionForm.getByLabelText('Note (optional)'), 'Revisit next week')
     await user.click(screen.getByRole('button', { name: 'Save action' }))
 
     await waitFor(() => {
@@ -418,7 +427,10 @@ describe('App', () => {
     const row = within(screen.getByRole('table', { name: 'Vehicle inventory' }))
       .getByRole('row', { name: /STK-0004/ })
     await user.click(within(row).getByRole('button', { name: 'Propose action' }))
-    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
+    const actionForm = within(
+      screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
+    )
+    await user.selectOptions(actionForm.getByLabelText('Action'), 'Price Reduction Planned')
     await user.click(screen.getByRole('button', { name: 'Save action' }))
 
     await waitFor(() => {
@@ -540,6 +552,118 @@ describe('App', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Aging only' }))
     expect(within(table).getAllByRole('row')).toHaveLength(2)
+  })
+
+  it('shows the action filter, updates results, count, and a removable action chip', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    expect(screen.getByRole('region', { name: 'Inventory filters' })).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search' }))
+      .toHaveAttribute('placeholder', 'Stock no., VIN, make or model')
+    expect(screen.getByRole('option', { name: 'All bands' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-7 of 7')
+    await user.selectOptions(screen.getByLabelText('Action'), 'no-action')
+
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-1 of 1')
+    expect(within(table).getAllByRole('row')).toHaveLength(2)
+    expect(within(table).getByRole('row', { name: /STK-0004/ })).toBeInTheDocument()
+    expect(within(table).queryByRole('row', { name: /STK-0001/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Action: No action yet')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Action'), 'has-action')
+
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-1 of 1')
+    expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
+    expect(within(table).queryByRole('row', { name: /STK-0004/ })).not.toBeInTheDocument()
+    expect(screen.getByText('Action: Has an action')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove Action: Has an action filter' }))
+
+    expect(screen.getByLabelText('Action')).toHaveValue('any')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-7 of 7')
+    expect(within(table).getAllByRole('row')).toHaveLength(sampleVehicles.length + 1)
+    expect(screen.queryByRole('list', { name: 'Active filters' })).not.toBeInTheDocument()
+  })
+
+  it('shows individually removable chips for each active filter and preserves the others', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'toyota')
+    await user.selectOptions(screen.getByLabelText('Make'), 'Toyota')
+    await user.selectOptions(screen.getByLabelText('Model'), 'Corolla')
+    await user.selectOptions(screen.getByLabelText('Age band'), '>90')
+    await user.click(screen.getByRole('checkbox', { name: 'Aging only' }))
+
+    expect(screen.getByRole('list', { name: 'Active filters' }).querySelectorAll('li'))
+      .toHaveLength(5)
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-1 of 1')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Make: Toyota filter' }))
+
+    expect(screen.getByLabelText('Make')).toHaveValue('')
+    expect(screen.getByLabelText('Model')).toHaveValue('Corolla')
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('toyota')
+    expect(screen.getByRole('checkbox', { name: 'Aging only' })).toBeChecked()
+    expect(screen.getByRole('list', { name: 'Active filters' }).querySelectorAll('li'))
+      .toHaveLength(4)
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-1 of 1')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Age band: >90 days filter' }))
+
+    expect(screen.getByLabelText('Age band')).toHaveValue('')
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('toyota')
+    expect(screen.getByLabelText('Model')).toHaveValue('Corolla')
+    expect(screen.getByRole('checkbox', { name: 'Aging only' })).toBeChecked()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-1 of 1')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Search: toyota filter' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('')
+    expect(screen.getByLabelText('Model')).toHaveValue('Corolla')
+    expect(screen.getByRole('checkbox', { name: 'Aging only' })).toBeChecked()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-1 of 1')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Model: Corolla filter' }))
+
+    expect(screen.getByLabelText('Model')).toHaveValue('')
+    expect(screen.getByRole('checkbox', { name: 'Aging only' })).toBeChecked()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-2 of 2')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Aging only filter' }))
+
+    expect(screen.queryByRole('list', { name: 'Active filters' })).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-7 of 7')
+  })
+
+  it('shows a removable Data issues chip and a zero-result count', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+    await user.click(screen.getByRole('link', { name: 'Data issues (3)' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-3 of 3')
+    expect(screen.getByText('Data issues', { selector: '.active-filter-chip span' }))
+      .toBeInTheDocument()
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'no-match')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 0 of 0')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Data issues filter' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('no-match')
+    expect(screen.queryByText('Data issues', { selector: '.active-filter-chip span' }))
+      .not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 0 of 0')
   })
 
   it('updates model options with make and clears a model unavailable for the new make', async () => {

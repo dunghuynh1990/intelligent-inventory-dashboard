@@ -2,97 +2,225 @@
   margin-bottom: var(--space-5);
   padding: var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-}
-
-.inventory-filters__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
-}
-
-.inventory-filters__heading h2 {
-  margin: 0;
-  color: var(--color-text);
-  font-size: 1.125rem;
 }
 
 .clear-filters-button {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 3.125rem;
+  padding: 0 var(--space-3);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  color: var(--color-text);
-  background: var(--color-surface);
+  color: var(--color-focus);
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .clear-filters-button:hover {
   background: var(--color-surface-muted);
 }
 
-.clear-filters-button:focus-visible {
-  outline-color: var(--color-focus);
+.clear-filters-button svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
 }
 
 .inventory-filters__controls {
   display: grid;
-  grid-template-columns: minmax(14rem, 2fr) repeat(3, minmax(9rem, 1fr)) auto;
+  grid-template-columns: minmax(12rem, 1.5fr) repeat(4, minmax(8rem, 1fr)) auto auto;
   align-items: end;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .filter-control {
   display: grid;
-  gap: var(--space-2);
+  gap: 0.375rem;
   min-width: 0;
 }
 
 .filter-control label {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .filter-control input,
 .filter-control select {
   width: 100%;
-  min-height: 2.75rem;
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  min-width: 0;
+  height: 3.125rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
   color: var(--color-text);
   background: var(--color-surface);
 }
 
-.filter-control--checkbox {
-  display: flex;
+.filter-control select {
+  appearance: none;
+  padding-right: 2.125rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233C576B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+}
+
+.filter-search {
+  position: relative;
+}
+
+.filter-search svg {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  width: 1rem;
+  height: 1rem;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.filter-search input {
+  padding-left: 2.75rem;
+  padding-right: var(--space-2);
+  font-size: 0.9375rem;
+}
+
+.filter-search input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.85;
+}
+
+.filter-control--switch {
+  position: relative;
+  align-self: end;
+  min-height: 3.125rem;
+}
+
+.filter-control--switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.aging-switch {
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 2.75rem;
+  min-height: 3.125rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
   white-space: nowrap;
+  user-select: none;
 }
 
-.filter-control--checkbox input {
-  width: 1.125rem;
-  min-height: 1.125rem;
-  margin: 0;
-  accent-color: var(--color-focus);
+.aging-switch__track {
+  position: relative;
+  width: 2.125rem;
+  height: 1.25rem;
+  flex: none;
+  border-radius: 999px;
+  background: #c3cfd7;
+  transition: background-color 160ms ease;
 }
 
-.filter-control--checkbox label {
+.aging-switch__track::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+  content: "";
+  transition: transform 160ms ease;
+}
+
+.filter-control--switch input:checked + .aging-switch .aging-switch__track {
+  background: var(--color-focus);
+}
+
+.filter-control--switch input:checked + .aging-switch .aging-switch__track::after {
+  transform: translateX(0.875rem);
+}
+
+.filter-control--switch input:focus-visible + .aging-switch {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.filter-control--switch input:checked + .aging-switch {
+  border-color: var(--color-focus);
+  background: #eef3fd;
+  color: var(--color-focus);
+}
+
+.active-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.active-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2rem;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-muted);
   color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.active-filter-chip button {
+  display: inline-grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  background: transparent;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.active-filter-chip button:hover {
+  color: var(--color-text);
+  background: var(--color-border);
 }
 
 @media (max-width: 64rem) {
   .inventory-filters__controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .filter-control--search {
     grid-column: 1 / -1;
+  }
+
+  .filter-control--switch {
+    grid-column: span 2;
   }
 }
 
@@ -102,10 +230,18 @@
   }
 
   .inventory-filters__controls {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .filter-control--search {
+    grid-column: 1 / -1;
+  }
+
+  .filter-control--switch {
     grid-column: auto;
+  }
+
+  .clear-filters-button {
+    justify-content: flex-start;
   }
 }
