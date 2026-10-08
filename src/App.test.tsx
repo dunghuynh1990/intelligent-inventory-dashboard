@@ -74,6 +74,7 @@ function createInventoryService(getVehicles: InventoryService['getVehicles']): I
 afterEach(() => {
   vi.restoreAllMocks()
   window.localStorage.clear()
+  window.history.replaceState({}, '', '/')
 })
 
 describe('App', () => {
@@ -310,6 +311,30 @@ describe('App', () => {
 
     expect(await screen.findByRole('table')).toBeInTheDocument()
     expect(getVehicles).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows the forced-failure state from the URL switch and offers retry', async () => {
+    window.history.replaceState({}, '', '/?forceFailure=true')
+    const service = new MockInventoryService({
+      referenceDate: new Date(2024, 5, 1, 12),
+      delayMs: 0,
+    })
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'MockInventoryService forced failure is enabled',
+    )
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'MockInventoryService forced failure is enabled',
+    )
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 
   it('requests inventory again and updates last-refreshed time on manual refresh', async () => {

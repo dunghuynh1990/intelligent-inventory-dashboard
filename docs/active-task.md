@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 4.7
-- Name: Build Action Logging Workflow
+- WBS ID: 4.8
+- Name: Implement UX States
 - Workstream: UI Implementation
 - Priority: Must
 - Status: Complete
-- Planned effort: 2.00 hours
+- Planned effort: 1.00 hour
 
 ## Objective
 
-Implement the aging-vehicle action form and save workflow through `InventoryService`, including validation, persistence, and visible save-failure handling.
+Verify that the dashboard presents the required loading, empty inventory, no-results, inventory-service error, retry, and action-save error states.
 
 ## Authoritative inputs
 
@@ -29,65 +29,54 @@ Implement the aging-vehicle action form and save workflow through `InventoryServ
 
 ## Linked acceptance criteria
 
-- AC-R3-01: Save `Price Reduction Planned` and an optional note for an aging vehicle.
-- AC-R3-02: Keep a saved action and note after reload with the same browser storage.
-- AC-R3-03: Do not offer action controls for a vehicle that is not aging.
-- AC-R3-04: Require an action; a note alone does not save.
-- AC-R3-05: Show save errors and retain the last successful row action.
-- AC-R3-06: A newly saved action replaces the previous current action.
+- AC-R4-01: Show a loading indicator and hide the list until retrieval completes.
+- AC-R4-02: Show an empty-inventory message when retrieval returns zero vehicles.
+- AC-R4-03: Show a distinct no-results state with `Clear filters`.
+- AC-R4-04: Show an inventory-service error with retry and no rows on initial retrieval failure.
+- AC-R4-05: Enable forced failure using the existing URL switch without changing code.
+- AC-R3-05: For a failed action save, show the error and preserve the previous successful row action.
 
 ## Approved assumptions and design choices used
 
-- Only aging vehicles get controls to add or edit an action.
-- The selected fixed-list action is the explicitly required `Price Reduction Planned`; no other values were invented while OQ-07 remains open.
-- The note is optional; no maximum length was introduced.
-- One current action is stored per vehicle; a successful save replaces it.
-- Save is pessimistic: the row changes only after the service succeeds, while saving controls are disabled.
-- Mock persistence remains local to the same browser and is demonstration-only.
-- Keep state local to the dashboard and use the existing `InventoryService`.
+- Preserve existing dashboard states and service boundaries; do not add new UX or recovery behavior beyond the linked criteria.
+- The existing `?forceFailure=true` switch configures the mock service for load and action-save demonstrations.
+- Keep inventory-error and action-save-error outcomes distinct; a save failure preserves the last successful action.
+- No dependencies, service contracts, or business rules are changed.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-`App` owns the selected vehicle and save lifecycle. `InventoryTable` presents row eligibility and composes `ProposedActionForm`; successful updates go through `InventoryService`, and action input state remains in the form component.
+`App` owns inventory loading/retry and dashboard rendering states. The `MockInventoryService` URL switch supplies demonstration failures; the action form renders save errors and retries the same proposed action.
 
 ## In scope
 
-- Add an accessible action form and add/edit controls for aging rows only.
-- Require the fixed-list action and accept an optional note.
-- Save through `InventoryService.updateVehicleAction`.
-- Keep prior row data visible during saving and on failure; provide an inline retry.
-- Update the row only after a successful service response.
-- Verify action persistence after a reload with a new mock service instance.
-- Cover validation, eligibility, replacement, save failure, pending state, and persistence.
+- Verify loading, empty, no-results, and service-error/retry states.
+- Add an app-level test that uses the URL switch and actual `MockInventoryService`, confirming forced load failure, absence of rows, and visible retry.
+- Verify the existing action-save error behavior from WBS 4.7 remains covered.
 - Update the active-task snapshot, traceability, and factual AI collaboration log.
 
 ## Explicitly out of scope
 
-- Inventing or expanding action values beyond `Price Reduction Planned` while OQ-07 remains open.
-- Action history, approvals, authentication, a real backend, or production persistence.
-- Changes to aging rules, generated inventory, service contracts, or requirements.
+- New state-management, notification, error-boundary, or logging abstractions.
+- Changing the established loading, empty, filter, or action-save UI.
+- Changes to the mock-service switch, service contract, requirements, or production backend behavior.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
 - `src/App.tsx`
 - `src/App.test.tsx`
-- `src/components/InventoryTable.tsx`
-- `src/components/InventoryTable.css`
 - `src/components/ProposedActionForm.tsx`
-- `src/components/ProposedActionForm.css`
+- `src/services/mock-inventory-service.ts`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
 ## Exit criteria
 
-- Action controls are available only for aging rows.
-- A missing action is validated and does not call the service.
-- A successful save replaces the current row action and persists after reload.
-- A failed save shows an error and preserves the previous row state.
-- Saving controls are disabled while the request is pending; retry is available after failure.
+- Required loading, empty, no-results, and service-error states are covered by observable component tests.
+- The actual URL forced-failure switch displays the service error, no rows, and a retry control.
+- Action-save error still shows an error and preserves the last successful action.
 - Focused and complete tests, lint, and production build pass.
 
 ## Verification commands
