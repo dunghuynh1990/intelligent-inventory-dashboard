@@ -18,6 +18,7 @@ const sampleVehicles: Vehicle[] = [
     daysInStock: 91,
     isAging: true,
     ageBand: '>90',
+    entryDateIssue: null,
   },
   {
     vehicleId: 'vehicle-002',
@@ -30,6 +31,7 @@ const sampleVehicles: Vehicle[] = [
     daysInStock: 90,
     isAging: false,
     ageBand: '61-90',
+    entryDateIssue: null,
   },
   {
     vehicleId: 'vehicle-003',
@@ -42,6 +44,7 @@ const sampleVehicles: Vehicle[] = [
     daysInStock: null,
     isAging: false,
     ageBand: null,
+    entryDateIssue: 'Invalid entry date',
   },
   {
     vehicleId: 'vehicle-004',
@@ -54,6 +57,7 @@ const sampleVehicles: Vehicle[] = [
     daysInStock: 91,
     isAging: true,
     ageBand: '>90',
+    entryDateIssue: null,
   },
   {
     vehicleId: 'vehicle-005',
@@ -66,6 +70,33 @@ const sampleVehicles: Vehicle[] = [
     daysInStock: 30,
     isAging: false,
     ageBand: '0-30',
+    entryDateIssue: null,
+  },
+  {
+    vehicleId: 'vehicle-006',
+    stockNumber: 'STK-0006',
+    vin: '1HGCM82633A004356',
+    make: 'Chevrolet',
+    model: 'Malibu',
+    stockEntryDate: null,
+    currentAction: null,
+    daysInStock: null,
+    isAging: false,
+    ageBand: null,
+    entryDateIssue: 'Missing entry date',
+  },
+  {
+    vehicleId: 'vehicle-007',
+    stockNumber: 'STK-0007',
+    vin: '1HGCM82633A004357',
+    make: 'Nissan',
+    model: 'Altima',
+    stockEntryDate: '2026-10-09',
+    currentAction: null,
+    daysInStock: null,
+    isAging: false,
+    ageBand: null,
+    entryDateIssue: 'Future entry date',
   },
 ]
 
@@ -125,7 +156,8 @@ describe('App', () => {
     const agingVehicleRow = within(table).getByRole('row', { name: /STK-0001/ })
     expect(agingVehicleRow).toHaveTextContent('Ford')
     expect(agingVehicleRow).toHaveTextContent('Escape')
-    expect(agingVehicleRow).toHaveTextContent('2026-07-09')
+    expect(agingVehicleRow).toHaveTextContent('1HGCM82633A004351')
+    expect(agingVehicleRow).toHaveTextContent('09-Jul-2026')
     expect(agingVehicleRow).toHaveTextContent('91')
     expect(within(agingVehicleRow).getByText('Aging')).toBeInTheDocument()
     expect(agingVehicleRow).toHaveTextContent('Price Reduction Planned')
@@ -144,12 +176,70 @@ describe('App', () => {
 
     const unknownAgeVehicleRow = within(table).getByRole('row', { name: /STK-0003/ })
     expect(unknownAgeVehicleRow).toHaveTextContent('Unknown')
+    expect(unknownAgeVehicleRow).toHaveTextContent('Invalid entry date')
     expect(within(unknownAgeVehicleRow).queryByText('Aging')).not.toBeInTheDocument()
+    expect(within(unknownAgeVehicleRow).queryByRole('button', { name: /action/i }))
+      .not.toBeInTheDocument()
+    expect(within(unknownAgeVehicleRow).getByText('invalid-date')).toBeInTheDocument()
+    expect(within(table).getByRole('columnheader', { name: 'VIN' })).toBeInTheDocument()
 
     expect(screen.getByText('Last refreshed').parentElement?.querySelector('time'))
       .toHaveAttribute('datetime', refreshedAt.toISOString())
     expect(clock).toHaveBeenCalledOnce()
     expect(service.updateVehicleAction).not.toHaveBeenCalled()
+  })
+
+  it('formats missing and future dates and shows their textual issue states', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const missingDateRow = within(table).getByRole('row', { name: /STK-0006/ })
+    const futureDateRow = within(table).getByRole('row', { name: /STK-0007/ })
+
+    expect(missingDateRow).toHaveTextContent('—')
+    expect(missingDateRow).toHaveTextContent('Missing entry date')
+    expect(futureDateRow).toHaveTextContent('09-Oct-2026')
+    expect(futureDateRow).toHaveTextContent('Future entry date')
+    for (const row of [missingDateRow, futureDateRow]) {
+      expect(row).toHaveTextContent('Unknown')
+      expect(within(row).queryByText('Aging')).not.toBeInTheDocument()
+      expect(within(row).queryByRole('button', { name: /action/i }))
+        .not.toBeInTheDocument()
+    }
+  })
+
+  it('highlights the matching VIN substring when searching by VIN', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), '004351')
+
+    const row = within(screen.getByRole('table', { name: 'Vehicle inventory' }))
+      .getByRole('row', { name: /STK-0001/ })
+    expect(within(row).getByText('004351', { selector: 'mark' })).toBeInTheDocument()
+  })
+
+  it('replaces active filters with the Data issues view', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+    await user.selectOptions(screen.getByLabelText('Make'), 'Ford')
+    expect(within(screen.getByRole('table', { name: 'Vehicle inventory' }))
+      .queryByRole('row', { name: /STK-0003/ })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'Data issues (3)' }))
+
+    const table = screen.getByRole('table', { name: 'Vehicle inventory' })
+    expect(within(table).getAllByRole('row')).toHaveLength(4)
+    expect(within(table).getByRole('row', { name: /STK-0003/ })).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /STK-0006/ })).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /STK-0007/ })).toBeInTheDocument()
+    expect(screen.getByLabelText('Make')).toHaveValue('')
   })
 
   it('validates a missing action and does not save a note by itself', async () => {
@@ -313,14 +403,14 @@ describe('App', () => {
       return within(summary).getByText(label).parentElement?.querySelector('dd') ?? null
     }
 
-    expect(getCount('Total vehicles')).toHaveTextContent('5')
+    expect(getCount('Total vehicles')).toHaveTextContent('7')
     expect(getCount('Aging vehicles')).toHaveTextContent('2')
     expect(getCount('Aging with an action')).toHaveTextContent('1')
 
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
     expect(within(await screen.findByRole('table', { name: 'Vehicle inventory' }))
       .getAllByRole('row')).toHaveLength(2)
-    expect(getCount('Total vehicles')).toHaveTextContent('5')
+    expect(getCount('Total vehicles')).toHaveTextContent('7')
     expect(getCount('Aging vehicles')).toHaveTextContent('2')
     expect(getCount('Aging with an action')).toHaveTextContent('1')
 

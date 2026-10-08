@@ -1,4 +1,11 @@
-import type { AgeBand, CalculatedVehicleData, Vehicle } from '../types/vehicle'
+import type {
+  AgeBand,
+  CalculatedVehicleData,
+  EntryDateIssue,
+  Vehicle,
+} from '../types/vehicle'
+
+export type { EntryDateIssue } from '../types/vehicle'
 
 export const AGING_THRESHOLD_DAYS = 90
 export const AGE_BANDS: readonly AgeBand[] = ['0-30', '31-60', '61-90', '>90']
@@ -7,10 +14,6 @@ export const FRESHNESS_AMBER_AFTER_MINUTES = 15
 export const FRESHNESS_WARNING_AFTER_MINUTES = 60
 
 export type ActionFilter = 'any' | 'no-action' | 'has-action'
-export type EntryDateIssue =
-  | 'Missing entry date'
-  | 'Invalid entry date'
-  | 'Future entry date'
 export type FreshnessLevel = 'normal' | 'amber' | 'warning'
 export type PageSize = (typeof PAGE_SIZES)[number]
 
@@ -20,6 +23,7 @@ export interface InventoryFilterCriteria {
   model: string
   ageBand: AgeBand | ''
   agingOnly: boolean
+  dataIssuesOnly: boolean
   actionFilter?: ActionFilter
 }
 
@@ -108,6 +112,7 @@ export function calculateVehicleAge(
     daysInStock,
     isAging: isAging(daysInStock),
     ageBand: getAgeBand(daysInStock),
+    entryDateIssue: classifyEntryDateIssue(stockEntryDate, referenceDate),
   }
 }
 
@@ -133,6 +138,7 @@ export function filterVehicles(
       return (
         matchesSearch &&
         matchesAction &&
+        (!filters.dataIssuesOnly || vehicle.entryDateIssue !== null) &&
         (!filters.make || vehicle.make === filters.make) &&
         (!filters.model || vehicle.model === filters.model) &&
         (!filters.ageBand || vehicle.ageBand === filters.ageBand) &&

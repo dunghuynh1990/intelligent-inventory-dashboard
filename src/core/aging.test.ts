@@ -39,6 +39,7 @@ const filterTestVehicles: Vehicle[] = [
     daysInStock: 30,
     isAging: false,
     ageBand: '0-30',
+    entryDateIssue: null,
   },
   {
     vehicleId: 'vehicle-001',
@@ -51,6 +52,7 @@ const filterTestVehicles: Vehicle[] = [
     daysInStock: 91,
     isAging: true,
     ageBand: '>90',
+    entryDateIssue: null,
   },
   {
     vehicleId: 'vehicle-002',
@@ -63,6 +65,7 @@ const filterTestVehicles: Vehicle[] = [
     daysInStock: 31,
     isAging: false,
     ageBand: '31-60',
+    entryDateIssue: null,
   },
   {
     vehicleId: 'vehicle-004',
@@ -75,6 +78,7 @@ const filterTestVehicles: Vehicle[] = [
     daysInStock: null,
     isAging: false,
     ageBand: null,
+    entryDateIssue: 'Invalid entry date',
   },
 ]
 
@@ -88,6 +92,7 @@ describe('vehicle aging rules', () => {
       daysInStock: days,
       isAging: aging,
       ageBand,
+      entryDateIssue: null,
     })
 
   })
@@ -98,14 +103,19 @@ describe('vehicle aging rules', () => {
     expect(calculateVehicleAge(entryDate, referenceDate).daysInStock).toBe(91)
   })
 
-  it.each(['', 'not-a-date', '2024-02-30'])(
-    'returns unknown age without throwing for invalid entry date %j',
-    (entryDate) => {
+  it.each([
+    ['', 'Missing entry date'],
+    ['not-a-date', 'Invalid entry date'],
+    ['2024-02-30', 'Invalid entry date'],
+  ] as const)(
+    'returns unknown age and the %s issue without throwing',
+    (entryDate, entryDateIssue) => {
       expect(() => calculateVehicleAge(entryDate, referenceDate)).not.toThrow()
       expect(calculateVehicleAge(entryDate, referenceDate)).toEqual({
         daysInStock: null,
         isAging: false,
         ageBand: null,
+        entryDateIssue,
       })
     },
   )
@@ -115,6 +125,7 @@ describe('vehicle aging rules', () => {
       daysInStock: null,
       isAging: false,
       ageBand: null,
+      entryDateIssue: 'Future entry date',
     })
   })
 
@@ -186,6 +197,7 @@ describe('entry-date issue classification', () => {
         daysInStock: days,
         isAging: expectedIsAging,
         ageBand,
+        entryDateIssue: null,
       })
     },
   )
@@ -202,6 +214,7 @@ describe('inventory filtering', () => {
     model: '',
     ageBand: '',
     agingOnly: false,
+    dataIssuesOnly: false,
   } as const
 
   it('returns every vehicle in ascending ID order when no filters are active', () => {
@@ -268,6 +281,15 @@ describe('inventory filtering', () => {
     ).toEqual(['vehicle-001'])
   })
 
+  it('filters to vehicles with a classified entry-date issue', () => {
+    expect(
+      filterVehicles(filterTestVehicles, {
+        ...noFilters,
+        dataIssuesOnly: true,
+      }).map(({ vehicleId }) => vehicleId),
+    ).toEqual(['vehicle-004'])
+  })
+
   it('filters no-action results to aging vehicles without a current action', () => {
     const vehicles = [
       ...filterTestVehicles,
@@ -308,6 +330,7 @@ describe('inventory filtering', () => {
         model: 'Corolla',
         ageBand: '>90',
         agingOnly: true,
+        dataIssuesOnly: false,
       }).map(({ vehicleId }) => vehicleId),
     ).toEqual(['vehicle-001'])
   })

@@ -167,7 +167,7 @@ When implementing a WBS task:
 - **Given:** A vehicle has a 17-character VIN.
 - **When:** Its row is displayed.
 - **Then:** The row shows the full VIN.
-- **Source:** CR-01 (README s8 VIN column); PROPOSED.
+- **Source:** CR-01 (README s8 VIN column); owner-approved for the assessment on 2026-10-09.
 - **Linked assumptions:** A-21
 - **Linked design choices:** C-13
 - **Test level:** Component
@@ -178,7 +178,7 @@ When implementing a WBS task:
 - **Given:** The generated vehicle list and the VIN of vehicle V010.
 - **When:** The first 8 characters of that VIN, in lower case, are used as the search text.
 - **Then:** V010 is returned and every returned vehicle contains that text in its stock number, VIN, make or model.
-- **Source:** CR-01; OQ-01; PROPOSED searched field: VIN.
+- **Source:** CR-01; owner-approved assessment search fields include VIN, stock number, make and model. Registration number and other identifiers remain open under OQ-01.
 - **Linked assumptions:** A-14, A-21
 - **Linked design choices:** C-21
 - **Test level:** Unit
@@ -395,7 +395,7 @@ When implementing a WBS task:
 - **Given:** Entry dates that are empty, `not-a-date`, after reference date R, and a valid past date.
 - **When:** The entry date is checked.
 - **Then:** The issues are `Missing entry date`, `Invalid entry date`, `Future entry date` and none, in that order.
-- **Source:** CR-06 (README Interactions `Bad dates`); OQ-05; PROPOSED labels.
+- **Source:** CR-06 (README Interactions `Bad dates`); owner-approved issue labels for the assessment on 2026-10-09.
 - **Linked assumptions:** A-12
 - **Linked design choices:** C-25
 - **Test level:** Unit
@@ -406,7 +406,7 @@ When implementing a WBS task:
 - **Given:** A vehicle has an invalid entry date.
 - **When:** Its row is displayed.
 - **Then:** The row shows `Unknown` days in stock and the issue text, no Aging badge and no action control, and the vehicle appears when the Data issues link is selected.
-- **Source:** CR-06; PROPOSED.
+- **Source:** CR-06; owner-approved for the assessment on 2026-10-09.
 - **Linked assumptions:** A-12
 - **Linked design choices:** C-25
 - **Test level:** Component
@@ -417,7 +417,7 @@ When implementing a WBS task:
 - **Given:** Reference date R.
 - **When:** The mock data is generated.
 - **Then:** It contains one vehicle each with a missing, an invalid and a future entry date, and the 89/90/91-day vehicles of AC-R2-10 are unchanged.
-- **Source:** CR-06 (HTML `generate()` bad{}); PROPOSED.
+- **Source:** CR-06 (HTML `generate()` bad{}); owner-approved examples for the assessment on 2026-10-09.
 - **Linked assumptions:** A-12
 - **Linked design choices:** C-07, C-25
 - **Test level:** Unit
@@ -695,16 +695,16 @@ When implementing a WBS task:
 | A-09 | Dashboard serves a single dealership. | AC-R1-01 |
 | A-10 | Persistence means same browser and user after reload. | AC-R3-02 |
 | A-11 | About 200 vehicles is demonstration scale, not a capacity target. | AC-R1-01, AC-R2-10 |
-| A-12 | PROPOSED: an invalid or future entry date has unknown age and is not aging; it shows Unknown with an issue tag and is available in the Data issues view. | AC-R2-05/06/14/15/16 |
+| A-12 | For the assessment, a missing, invalid or future entry date has unknown age and is not aging; it shows Unknown with an issue tag and is available in the Data issues view. Owner-approved 2026-10-09; production handling remains open (OQ-05). | AC-R2-05/06/14/15/16 |
 | A-13 | Filters combine with AND and Clear resets all filters; summary, Data issues and preset views replace the current filters. | AC-R1-08/09 |
-| A-14 | PROPOSED: Search matches stock number, VIN, make and model, case-insensitive. | AC-R1-03/13 |
+| A-14 | Search matches stock number, VIN, make and model, case-insensitive. Owner-approved for the assessment 2026-10-09; additional identifiers remain open (OQ-01). | AC-R1-03/13 |
 | A-15 | An action must be selected; a note alone is insufficient. | AC-R3-04 |
 | A-16 | Calendar day uses browser local date and local start of day; time is ignored. | AC-R2-04, AC-R2-11 |
 | A-17 | PROPOSED: `No action yet` returns aging vehicles without a current action; `Has an action` returns vehicles with a current action. | AC-R1-14/15 |
 | A-18 | PROPOSED: Freshness is normal under 15 minutes, amber from 15, and warning from 60; these are placeholders. | AC-R4-07, AC-R5-03/04/05 |
 | A-19 | PROPOSED: Turning aging soon means 7 or fewer days to threshold (days 84-90); it is informational and actions remain aging-only. | AC-R2-17/18 |
 | A-20 | PROPOSED: Saved actions carry their logged time; calendar days are counted; actions older than 14 days get a check-progress flag (placeholder). | AC-R3-07/08 |
-| A-21 | PROPOSED: VIN is fake, opaque 17-character text for display and search only; it is not validated or decoded. | AC-R1-12/13 |
+| A-21 | VIN is fake, opaque 17-character text for display and search only; it is not validated or decoded. Owner-approved for the assessment 2026-10-09. | AC-R1-12/13 |
 
 ## Production Validation Needs
 
@@ -760,7 +760,7 @@ When implementing a WBS task:
 | C-10 | Filtering and paging run on the client over the full list returned by `getVehicles`. Server-side filtering and paging are documented as the future contract (E-05), not built. | AC-R1-03 to AC-R1-08 |
 | C-11 | Observability hooks: logging wrapper, error boundary and service-call correlation ID (Should; design-only if dropped). The correlation ID also appears in error messages (AC-R3-09, CR-29); if the hooks are dropped, the Ref text is dropped. | Optional |
 | C-12 | Mock contains in-stock vehicles only. | AC-R1-01 |
-| C-13 | Each list row shows stock number, VIN, make, model, entry date (DD-MMM-YYYY), days in stock, status (aging badge, due-soon tag or data-issue tag) and current action. | AC-R1-02, AC-R1-12, AC-R2-12/15 |
+| C-13 | Each list row shows stock number, VIN, make, model, entry date (DD-MMM-YYYY), days in stock, status (aging badge, due-soon tag or data-issue tag) and current action. Owner-approved for WBS 4.16 on 2026-10-09: VIN, date format and data-issue display; the due-soon tag remains separately scoped to WBS 4.21. | AC-R1-02, AC-R1-12, AC-R2-12/15 |
 | C-14 | Dashboard summary above the list shows total vehicles, aging count and aging vehicles with an action (Should; first item dropped if behind). Nice upgrade adds aging share and an actioned meter (CR-10). | AC-R2-13, Should |
 | C-15 | Only actions and notes are persisted, keyed by stable vehicle ID. | AC-R2-10, AC-R3-02 |
 | C-16 | Save is pessimistic; disabled saving state; inline Retry; previous action retained on failure. | AC-R3-01, AC-R3-05 |
@@ -768,11 +768,11 @@ When implementing a WBS task:
 | C-18 | Without a selected sort, display order is fixed by vehicle ID. Optional column sorting (Nice, CR-05) overrides it for the session: unknown values last, ties by vehicle ID, not persisted. If dropped, sorting is out of scope. | AC-R1-11, AC-R1-19/20 |
 | C-19 | Impossible filter combinations are allowed and show no-results with Clear filters. | AC-R1-09, AC-R4-03 |
 | C-20 | Client-side pagination uses page sizes 10, 20, 50 and 100 (default 20), first/previous/numbered/next/last controls, resets to page 1 when a filter changes, clamps when results shrink, and does not persist page or page size. Go-to-page is not built. | AC-R1-01, AC-R1-16/17/18 |
-| C-21 | Core module adds pure functions for search over stock number, VIN, make and model; action filter; entry-date issue classification; pagination; and freshness level. If built: `sortRows` and early-warning rule. | AC-R1-03, AC-R1-13 to AC-R1-16, AC-R1-19, AC-R2-14/17, AC-R5-03 |
+| C-21 | Core module adds pure functions for search over stock number, VIN, make and model; action filter; entry-date issue classification; pagination; and freshness level. If built: `sortRows` and early-warning rule. Owner-approved for WBS 4.16 on 2026-10-09 only for VIN search and entry-date issue classification; action filtering, pagination, freshness, sorting and early warning remain subject to their own scope and approval. | AC-R1-03, AC-R1-13 to AC-R1-16, AC-R1-19, AC-R2-14/17, AC-R5-03 |
 | C-22 | One early-warning window constant (7 days, days 84-90) drives the summary card, `Due in N days` row tag and preset; the mockup's separate day-80 tag is not adopted. Nice. | AC-R2-17/18 |
 | C-23 | Only saved actions persist (C-15). Sort, page, page size, density and saved views are not persisted. | AC-R3-02 |
 | C-24 | Freshness uses named placeholder constants (15 and 60 minutes) and a pure level function. Header shows reference date, last-refreshed time and time ago; a warning banner with Refresh now appears from 60 minutes. Failed refresh keeps last data with a Retry banner; failed first load shows AC-R4-04. | AC-R4-06, AC-R5-03/04/05/06 |
-| C-25 | Missing, invalid and future entry dates show `Unknown` days and an issue tag, are not aging, and appear under a Data issues link and preset. Mock data contains one of each. | AC-R2-14/15/16 |
+| C-25 | Missing, invalid and future entry dates show `Unknown` days and an issue tag, are not aging, and appear under a Data issues link and preset. Mock data contains one of each. Owner-approved for WBS 4.16 on 2026-10-09 for issue visibility and the Data issues link only; the separate preset remains under WBS 4.23. Production policy remains open (OQ-05). | AC-R2-14/15/16 |
 | C-26 | Reviewer switches are in the mock layer: forced failure (C-05), empty inventory and data age, set by URL parameter or dev-only panel outside product UI. Sample actions are seeded only in demo mode; requirement-ID overlay is not built. PROPOSED. | AC-R4-05/07 |
 | C-27 | Visual layer uses CSS variables from the CR token table, Manrope / Inter / IBM Plex Mono, maximum width 1440 px, fixed table columns with minimum width 1200 px and horizontal scroll below 1340 px, and a blue focus ring. | None (no behavioural AC) |
 | C-28 | `currentAction = { action, note?, loggedAt }`; one current action per vehicle (A-06); fixed list of five placeholder values (Price Reduction Planned, Transfer to Another Site, Send to Auction, Promote in Campaign, Under Review). Partly answers OQ-07. | AC-R3-01/06/07 |
@@ -785,11 +785,11 @@ When implementing a WBS task:
 
 | ID | Area | Question / current assessment position |
 |---|---|---|
-| OQ-01 | Search | Which fields does free-text search cover? The assessment now searches VIN as well; registration number and other identifiers remain open. |
+| OQ-01 | Search | Assessment search fields are owner-approved as stock number, VIN, make and model (2026-10-09). Registration number and other identifiers, including production search scope, remain open. |
 | OQ-02 | Filters | Are make/model multi-select? Assessment narrows models by make; multi-select remains open. |
 | OQ-03 | Inventory | Does all inventory include sold, reserved or in-transit? Mock uses in-stock only. |
 | OQ-04 | Timezone | Should dealership timezone replace browser local date in production? |
-| OQ-05 | Data quality | How should invalid/future entry dates appear to the manager? The assessment shows Unknown with an issue tag and a Data issues view; production handling remains open. |
+| OQ-05 | Data quality | Assessment handling is owner-approved (2026-10-09): missing, invalid and future entry dates have unknown age, are not aging, show an issue label and appear in the Data issues view. Production handling remains open. |
 | OQ-06 | Prominence | Is a badge enough, or is a summary/aging-first view required? The CR adds an age profile and richer summary cards (both Nice); whether the badge alone is enough remains open. |
 | OQ-07 | Action model | Are status and proposed action distinct, and what are the fixed-list values? The mockup proposes five placeholders; sign-off remains open. |
 | OQ-08 | History | Does log mean an audit history or only current action? Assessment uses current action. |
@@ -944,16 +944,16 @@ Before implementing a WBS task, GitHub Copilot must:
 
 # 12. Change Request Impact (v4)
 
-The following triage records the 32 change-request items against Baseline v3. Dispositions remain proposals pending owner confirmation (OQ-14). Plan tiers are Must, Should and Nice; acceptance-criteria priority uses Must and Should, so Nice plan items are Should in the AC register. Dropped rows refer to Plan v5.
+The following triage records the 32 change-request items against Baseline v3. Dispositions remain proposals pending owner confirmation (OQ-14), except the individually marked owner-approved CR-01, CR-06 and CR-32 assessment scope confirmed on 2026-10-09. Plan tiers are Must, Should and Nice; acceptance-criteria priority uses Must and Should, so Nice plan items are Should in the AC register. Dropped rows refer to Plan v5.
 
 | CR ID | Change | Disposition / tier | Plan WBS | Requirement links |
 |---|---|---|---|---|
-| CR-01 | VIN column, VIN search and match highlight | Adopt / Should | 4.12, 4.13, 4.16 | AC-R1-12/13; A-14/21; OQ-01; C-13/21 |
+| CR-01 | VIN column, VIN search and match highlight | Owner-approved: Adopt / Should (assessment scope) | 4.12, 4.13, 4.16 | AC-R1-12/13; A-14/21; OQ-01; C-13/21 |
 | CR-02 | Action filter: Any / No action yet / Has an action | Adopt / Should | 4.12, 4.17 | AC-R1-14/15; A-17; C-21 |
 | CR-03 | Client pagination and page-size controls | Adopt with changes / Should | 4.12, 4.18 | AC-R1-01/16/17/18; A-11; C-20/23; OQ-12 |
 | CR-04 | Result count and removable filter chips | Adopt / Should | 4.17 | AC-R1-17 |
 | CR-05 | Eight-column sorting, three-state, unknown-last, ID tie-break | Adopt, gated / Nice | 4.24 | AC-R1-11/19/20; C-18/21; D32 |
-| CR-06 | Missing/invalid/future date issue treatment and Data issues view | Adopt / Should | 4.12, 4.13, 4.16 | AC-R2-14/15/16; A-12; OQ-05; C-25 |
+| CR-06 | Missing/invalid/future date issue treatment and Data issues view | Owner-approved: Adopt / Should (assessment scope) | 4.12, 4.13, 4.16 | AC-R2-14/15/16; A-12; OQ-05; C-25 |
 | CR-07 | Action logged time | Adopt / Should | 4.13, 4.19 | AC-R3-07; A-20; C-28 |
 | CR-08 | Stale-action flag after 14 days | Adopt, gated / Nice | 4.21 | AC-R3-08; A-20; OQ-17 |
 | CR-09 | One early-warning window and due-soon tag | Adopt with change / Nice | 4.21 | AC-R2-17/18; A-19; C-22/29; OQ-15 |
@@ -979,7 +979,7 @@ The following triage records the 32 change-request items against Baseline v3. Di
 | CR-29 | Correlation ID in error messages | Adopt, requires 4.10 / Should | 4.19 | AC-R3-09; C-11; REC-06 |
 | CR-30 | Notes cards and requirement-ID overlay | Not built / Excluded | - | E-15 |
 | CR-31 | Inline action editor instead of dialog | Not adopted; keep dialog / Excluded | - | C-30 |
-| CR-32 | Entry-date format DD-MMM-YYYY | Adopt / Should | 4.16 | C-13 |
+| CR-32 | Entry-date format DD-MMM-YYYY | Owner-approved: Adopt / Should (assessment scope) | 4.16 | C-13 |
 
 ## Conflicts and inconsistencies recorded in the CR
 
@@ -1011,3 +1011,4 @@ The following triage records the 32 change-request items against Baseline v3. Di
 - Added the 32-item CR Impact triage and 15 recorded conflicts; added Q3 and REC-07 to REC-11.
 - Updated Coverage, Release DoD RL-02/RL-04/RL-05/RL-08, the CR Should realism guidance and README interpretation items #2/#3/#7/#9-#15.
 - Kept Task DoD T-01 to T-08 unchanged. The current baseline has no DoD Example section; no example content was synthesized.
+- Owner-confirmed the assessment scope for CR-01, CR-06 and CR-32 on 2026-10-09. Updated linked assumptions, design-choice scope notes, acceptance-criterion sources and OQ-01/OQ-05; production questions and unrelated CR dispositions remain open or proposed.

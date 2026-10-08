@@ -37,7 +37,7 @@ export function InventoryFilters({
             id="inventory-search"
             type="search"
             value={filters.searchText}
-            placeholder="Stock number, make, or model"
+            placeholder="Stock number, VIN, make, or model"
             onChange={(event) =>
               onChange({ ...filters, searchText: event.currentTarget.value })
             }

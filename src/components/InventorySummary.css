@@ -42,6 +42,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.inventory-summary__data-issues {
+  display: inline-block;
+  margin-top: var(--space-3);
+  color: var(--color-primary);
+  font-weight: 600;
+  text-underline-offset: 0.15em;
+}
+
+.inventory-summary__data-issues:hover {
+  color: var(--color-primary-hover);
+}
+
 @media (max-width: 40rem) {
   .inventory-summary__cards {
     grid-template-columns: 1fr;

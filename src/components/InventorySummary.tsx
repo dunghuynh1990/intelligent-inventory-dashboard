@@ -3,6 +3,7 @@ import './InventorySummary.css'
 
 type InventorySummaryProps = {
   counts: InventorySummaryCounts
+  onShowDataIssues: () => void
 }
 
 const summaryItems: Array<{
@@ -14,7 +15,7 @@ const summaryItems: Array<{
   { label: 'Aging with an action', key: 'agingVehiclesWithAction' },
 ]
 
-export function InventorySummary({ counts }: InventorySummaryProps) {
+export function InventorySummary({ counts, onShowDataIssues }: InventorySummaryProps) {
   return (
     <section className="inventory-summary" aria-labelledby="inventory-summary-title">
       <h2 id="inventory-summary-title">Inventory summary</h2>
@@ -26,6 +27,13 @@ export function InventorySummary({ counts }: InventorySummaryProps) {
           </div>
         ))}
       </dl>
+      <a
+        className="inventory-summary__data-issues"
+        href="#inventory-section"
+        onClick={onShowDataIssues}
+      >
+        Data issues ({counts.dataIssueVehicles})
+      </a>
     </section>
   )
 }

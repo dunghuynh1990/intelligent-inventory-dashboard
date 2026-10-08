@@ -1,4 +1,8 @@
 export type AgeBand = '0-30' | '31-60' | '61-90' | '>90'
+export type EntryDateIssue =
+  | 'Missing entry date'
+  | 'Invalid entry date'
+  | 'Future entry date'
 
 export interface VehicleAction {
   action: string
@@ -20,6 +24,7 @@ export interface CalculatedVehicleData {
   daysInStock: number | null
   isAging: boolean
   ageBand: AgeBand | null
+  entryDateIssue: EntryDateIssue | null
 }
 
 export interface Vehicle extends StoredVehicleData, CalculatedVehicleData {}

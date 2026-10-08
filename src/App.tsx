@@ -26,6 +26,7 @@ const emptyFilters: InventoryFilterCriteria = {
   model: '',
   ageBand: '',
   agingOnly: false,
+  dataIssuesOnly: false,
 }
 const noVehicles: Vehicle[] = []
 
@@ -158,7 +159,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
         </div>
       </header>
       <main className="dashboard-main">
-        <section className="inventory-section" aria-labelledby="inventory-title" aria-busy={isLoading}>
+        <section id="inventory-section" className="inventory-section" aria-labelledby="inventory-title" aria-busy={isLoading}>
           <div className="inventory-section__heading">
             <div>
               <h2 id="inventory-title">Inventory</h2>
@@ -181,7 +182,12 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               {error}
             </p>
           )}
-          {vehicles !== null && <InventorySummary counts={summaryCounts} />}
+          {vehicles !== null && (
+            <InventorySummary
+              counts={summaryCounts}
+              onShowDataIssues={() => setFilters({ ...emptyFilters, dataIssuesOnly: true })}
+            />
+          )}
           {vehicles !== null && vehicles.length === 0 && !isLoading && (
             <p className="inventory-empty">No vehicles in inventory.</p>
           )}
@@ -210,6 +216,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               ) : (
                 <InventoryTable
                   vehicles={filteredVehicles}
+                  searchText={filters.searchText}
                   editingVehicleId={editingVehicleId}
                   isSaving={savingVehicleId !== null}
                   onEditAction={(vehicle) => setEditingVehicleId(vehicle.vehicleId)}
