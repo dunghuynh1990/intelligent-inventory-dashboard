@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 6.3
-- Name: Define Initial Non-Functional Strategy
-- Workstream: System Design
+- WBS ID: 3.2
+- Name: Define Data Model
+- Workstream: UX & Design
 - Priority: Must
-- Status: Not Started
-- Planned effort: 0.75 hour
+- Status: Complete
+- Planned effort: 0.50 hour
 
 ## Objective
 
-Record the initial non-functional direction for scalability, performance, reliability, maintainability, observability, and security without claiming future production capabilities are implemented.
+Define the TypeScript `Vehicle` model, separating stored vehicle data from calculated age data and aligning its field names with the approved requirements.
 
 ## Authoritative inputs
 
@@ -28,64 +28,69 @@ Record the initial non-functional direction for scalability, performance, reliab
 
 ## Linked acceptance criteria
 
-No product acceptance-criterion IDs are linked to WBS 6.3 in the current traceability matrix. The task exit criteria are listed below.
+No WBS 3.2-specific acceptance-criterion IDs are currently listed in `docs/traceability.md`. The model is informed by:
+
+- **AC-R1-02:** vehicle display data includes make, model, stock number, entry date, and days in stock.
+- **AC-R2-05 and AC-R2-06:** invalid or future entry dates yield unknown days in stock and are not aging.
+- **AC-R3-01 and AC-R3-04:** the current action is selected and required to save; its note is optional.
 
 ## Approved assumptions and design choices used
 
-- The assessment is a single-dealership demonstration with approximately 200 deterministic vehicles; this is not a production capacity target.
-- Inventory is accessed through the typed `InventoryService` boundary and mocked for the assessment.
-- The UI uses client-side filtering for the demonstration dataset; server-side filtering and paging are future production options.
-- REC-06 remains Not Applied: the logging wrapper and error boundary are not promoted to Must.
-- Copilot must stop before staging, committing, or pushing.
+- Vehicle identity uses a stable `vehicleId`; the approved design uses it for action persistence and stable display order.
+- Stock entry date is represented as a string because input may be empty or invalid and validation/calculation belong to later work.
+- `daysInStock` is unknown for invalid or future dates; the vehicle is not aging in those cases, and no age band is assigned.
+- Action-choice values remain open; the model uses a string and does not invent the approved fixed list.
+- Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The assessment frontend, UI state/orchestration, pure TypeScript core, `InventoryService`, and mock adapter. Production API, database, telemetry platform, and push/poll freshness mechanisms remain future architecture.
+The data type is a contract between the inventory service and application layers. The approved intended service contract returns vehicles from `getVehicles`; the current service scaffold still exposes only `getInventoryCount`. This task defines the domain model only and does not alter the service contract.
 
 ## In scope
 
-- Document initial strategy for scalability.
-- Document initial strategy for performance.
-- Document initial strategy for reliability.
-- Document initial strategy for maintainability.
-- Document initial strategy for observability.
-- Document security as an owner-added consideration.
-- Keep assessment capabilities distinct from future production direction.
+- Define `Vehicle`.
+- Separate stored vehicle/action fields from calculated age fields.
+- Include `daysInStock`, `isAging`, and `ageBand`.
+- Align field names and nullable age values with linked requirements.
 
 ## Explicitly out of scope
 
-- Implementing or changing application features, runtime controls, telemetry, or production infrastructure.
-- Introducing production performance, availability, or capacity guarantees without approved targets.
-- Promoting optional observability work to Must or implementing unapplied REC-06.
-- Changing the requirements baseline, architecture diagram, or decision register.
+- Aging, age-band, or validation calculations.
+- Inventory generation or mock-service expansion.
+- Changing `InventoryService`.
+- Filters, UI, proposed-action workflow, or persistence behavior.
+- Choosing fixed action/status values.
+- Adding dependencies.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- `docs/system-design.md`
+- `src/types/vehicle.ts`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
-No application tests or dependencies are expected to change.
+No behavior tests are expected; the TypeScript build verifies the model declaration.
 
 ## Exit criteria
 
-- Initial direction is recorded for scalability, performance, reliability, maintainability, observability, and security as an owner-added consideration.
-- Future production capabilities and targets are clearly labeled as future or undecided, not implemented.
-- The requirements baseline and architecture diagram remain unchanged.
-- The documentation diff is reviewed and understandable.
+- A `Vehicle` type is defined.
+- Stored fields are separate from calculated fields.
+- Calculated fields include `daysInStock`, `isAging`, and `ageBand`.
+- Names and types are consistent with the approved requirements and intended service contract.
+- No later WBS feature is implemented.
+- The TypeScript production build passes.
 - Copilot stops before staging, committing, or pushing.
 
 ## Verification commands
 
 ```bash
-git status
-git diff
+npm test -- --pool=threads
+npm run lint
+npm run build
+git diff --check
 ```
-
-No application behavior or code/configuration is changed; per the requirements baseline, tests, lint, and build are not required for this documentation-only task.
 
 ## Human-only completion
 
-The repository owner reviews the complete diff and factual AI log, then stages, commits, and pushes accepted changes. Copilot must stop before those operations.
+The repository owner reviews the complete diff, then stages, commits, and pushes accepted changes. Copilot must stop before those operations.
