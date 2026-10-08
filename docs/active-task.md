@@ -1,85 +1,80 @@
 # Active WBS Task
 
-> Generated from `docs/wbs.md`, `docs/requirements-baseline.md`, `docs/decisions/decision-register.md`, and `docs/traceability.md`. This execution snapshot records WBS 4.12 scope; it does not approve proposed CR decisions or change requirements.
+> Generated from `docs/wbs.md`, `docs/requirements-baseline.md`, `docs/decisions/decision-register.md`, and `docs/traceability.md`. This execution snapshot records WBS 5.6 scope; it does not approve proposed CR decisions or change requirements.
 
 ## Task
 
-- WBS ID: 4.12
-- Name: Extend Core Module for CR
-- Workstream: Core Logic
+- WBS ID: 5.6
+- Name: CR Core Unit Tests
+- Workstream: Testing
 - Priority: Should
 - Status: In Progress
-- Planned effort: 1.00 hour
+- Planned effort: 0.75 hour
 - CR Ref: CR-01, CR-02, CR-03, CR-06, CR-17
 
 ## Objective
 
-Add pure, framework-independent core functions for CR search, action filtering, entry-date issue classification, pagination, freshness levels and data-issue summary counts. Use explicit reference-date and current-time inputs.
+Verify pure CR core behavior against fixed inventory data and injected dates/times, demonstrate that deliberate changes to each tested rule fail the relevant tests, and record the work factually in the AI collaboration log.
 
 ## Linked acceptance criteria
 
 - AC-R1-13: Search stock number, VIN, make and model case-insensitively.
-- AC-R1-14: `No action yet` returns only aging vehicles without a current action.
-- AC-R1-15: `Has an action` returns vehicles with a current action.
-- AC-R1-16: Slice the requested page and clamp an out-of-range page.
-- AC-R2-14: Classify missing, invalid and future entry dates distinctly.
-- AC-R2-16: This task provides issue classification and summary support only; deterministic bad-date examples and confirming the 89/90/91-day generated fixtures remain WBS 4.13.
-- AC-R5-03: Map elapsed refresh ages of 14, 15, 59 and 60 minutes to normal, amber, amber and warning.
+- AC-R1-14/15: Filter aging vehicles without a current action and vehicles that have a current action.
+- AC-R1-16: Slice and clamp requested pages.
+- AC-R2-14: Distinguish missing, invalid, future and valid entry dates.
+- AC-R2-16: Preserve the 89/90/91-day generated boundaries while adding data-issue cases. Existing mock-adapter tests verify the generated boundaries; generated missing/invalid/future examples remain for WBS 4.13.
+- AC-R5-03: Classify fixed elapsed times of 14, 15, 59 and 60 minutes as normal, amber, amber and warning.
 
 ## Assumptions and decisions used
 
-- A-12 is PROPOSED: missing, invalid and future dates have unknown age and are not aging.
-- A-14 is PROPOSED: search includes stock number, VIN, make and model, case-insensitively.
-- A-17 is PROPOSED: no-action filtering also requires an aging vehicle; has-action filtering requires a current action.
-- A-18 and C-24 freshness thresholds are proposed placeholders (amber from 15 minutes, warning from 60); OQ-11 remains open. They are not production service-level targets.
-- C-20 defines proposed page sizes 10/20/50/100, default 20, and non-persistent page state. D31 remains Proposed.
-- C-21 assigns core search, action filtering, date issue classification, pagination and freshness to pure TypeScript functions. Sorting and early-warning remain in later gated WBS tasks.
-- The current Vehicle type and mock data do not yet include VIN. Core search will support an optional VIN for compatibility; the mock VIN generation is outside WBS 4.12.
+- A-12, A-14, A-17 and A-18 remain PROPOSED; this task verifies their assessment behavior without claiming production approval.
+- C-21 assigns pure search, action filter, entry-date classification, pagination, and freshness behavior to the framework-independent core.
+- C-20/D31 page sizes and C-24 freshness thresholds are proposed assessment choices; OQ-11 remains open.
+- Reference dates and current times are fixed/injected in tests. The system clock is not read by the tested core functions.
 
 ## Relevant design components
 
-- `src/core/aging.ts`: pure aging/filter functions and the new CR-related pure helpers.
-- `src/types/vehicle.ts`: existing vehicle/action contract; unchanged.
-- `InventoryService`: not changed; core logic remains separate from data access.
+- `src/core/aging.ts` pure CR helpers.
+- `src/core/aging.test.ts` unit tests, shared with earlier aging/filter tests.
+- `src/services/mock-vehicle-data.ts` and `src/services/mock-inventory-service.test.ts` existing 89/90/91-day fixture contract; used only for boundary mutation verification, not changed by this task.
 
 ## In scope
 
-- Extend core search to consider an optional VIN field as well as stock number, make and model.
-- Add action-filter predicates and date-issue classification with an explicit reference date.
-- Add generic pagination slicing and page clamping, freshness classification with an explicit current time, and a data-issue summary count.
-- Add focused unit coverage for the new core behavior and boundaries.
-- Replace this execution snapshot for the requested WBS task.
+- Add focused fixed-date boundary coverage tying entry-date issue classification to unchanged 89/90/91-day age behavior.
+- Run representative deliberate mutations for each linked core rule and confirm the corresponding tests fail.
+- Record only verified implementation and test evidence in `docs/ai/collaboration-log.md`.
+- Generate this execution snapshot.
 
 ## Explicitly out of scope
 
-- React filter/pager/header wiring, presentation, or changes to the service contract.
-- Mock VIN generation, mock bad-date records and `loggedAt` (WBS 4.13).
-- Sort and early-warning functions (WBS 4.21 and 4.24).
-- Requirements, WBS, traceability, decisions and system-design changes.
-- Dependencies, staging, committing or pushing.
+- Implementing the mock-layer missing/invalid/future records or VIN generation (WBS 4.13).
+- Changing product/core implementation, React components, service contracts, requirements, WBS, design documents, or unrelated tests.
+- Changing WBS task statuses, staging, committing or pushing.
 
 ## Files expected to change
 
-- `src/core/aging.ts`
 - `src/core/aging.test.ts`
 - `docs/active-task.md`
+- `docs/ai/collaboration-log.md`
 
 ## Tests to add or update
 
-- Extend `src/core/aging.test.ts` with VIN and action-filter behavior, date-issue boundaries, pagination/clamping, freshness thresholds and data-issue summary cases.
-- The broader unit-test workstream is WBS 5.6; this task adds only targeted tests necessary to verify these newly implemented core functions.
+- Add focused AC-R2-16-related checks that entry-date issue classification leaves valid 89/90/91-day boundary vehicles classified as expected.
+- Existing core tests cover AC-R1-13/14/15/16, AC-R2-14 and AC-R5-03.
+- Existing mock-adapter tests cover the generated 89/90/91-day boundaries. CR-specific generated bad-date examples are deferred to WBS 4.13.
+- Perform transient mutation checks; restore all production/mock source files after each check.
 
 ## Conflicts and gaps
 
-- The current domain type has no VIN yet; WBS 4.13 owns mock VIN generation. This task supports optional VIN in core search without changing the shared vehicle type or fixtures.
-- AC-R5-03 thresholds and A-12/A-14/A-17 are proposed, with OQ-11 still open. Implement them only as assessment behavior/placeholder thresholds and do not present them as confirmed production requirements.
-- The previous active-task snapshot recorded WBS 3.5. This snapshot replaces it for the explicitly requested WBS 4.12 without changing WBS status records.
+- AC-R2-16 includes generated missing/invalid/future examples, but adding these to the mock generator is explicitly assigned to WBS 4.13. This task verifies the core issue-classification and existing boundary-preservation tests, not the not-yet-implemented generated examples.
+- The prior active-task snapshot was for WBS 4.12; this snapshot replaces it without changing the WBS record.
 
 ## Exit criteria
 
-- Core helpers have no React imports and use explicit date/time inputs.
-- Search, action filters, issue classification, pagination, freshness and data-issue summary count are implemented.
-- Focused and full tests, lint, build, and final diff/scope review are reported.
+- Linked pure-core behavior is tested with fixed data/date/time.
+- Mutations for search, action filters, pagination, date classification/boundaries, freshness and issue summary are detected by tests.
+- Generated mock boundary mutation is detected; all transient mutations are restored.
+- Focused/full tests, lint, build, final diff and factual collaboration-log entry are reported.
 
 ## Verification commands
 

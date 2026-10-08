@@ -169,6 +169,24 @@ describe('entry-date issue classification', () => {
     expect(classifyEntryDateIssue(undefined, referenceDate)).toBe('Missing entry date')
   })
 
+  it.each([
+    { days: 89, isAging: false, ageBand: '61-90' },
+    { days: 90, isAging: false, ageBand: '61-90' },
+    { days: 91, isAging: true, ageBand: '>90' },
+  ] as const)(
+    'does not classify the $days-day boundary vehicle as an entry-date issue',
+    ({ days, isAging: expectedIsAging, ageBand }) => {
+      const entryDate = entryDateDaysBefore(days)
+
+      expect(classifyEntryDateIssue(entryDate, referenceDate)).toBeNull()
+      expect(calculateVehicleAge(entryDate, referenceDate)).toEqual({
+        daysInStock: days,
+        isAging: expectedIsAging,
+        ageBand,
+      })
+    },
+  )
+
   it('rejects an invalid injected reference date explicitly', () => {
     expect(() => classifyEntryDateIssue('', new Date(Number.NaN))).toThrow(RangeError)
   })
