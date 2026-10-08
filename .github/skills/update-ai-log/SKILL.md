@@ -1,8 +1,8 @@
 ---
-description: "Record a completed or attempted WBS task and verified results in the canonical AI collaboration log."
-name: "Update AI Log"
+name: update-ai-log
+description: Record a completed or attempted WBS task and verified results in the canonical AI collaboration log.
+disable-model-invocation: true
 argument-hint: "Task ID and summary of the AI contribution"
-agent: "agent"
 ---
 Update the canonical [AI collaboration log](../../docs/ai/collaboration-log.md) for the specified task using evidence from this conversation and the repository.
 

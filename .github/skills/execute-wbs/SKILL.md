@@ -1,10 +1,9 @@
 ---
 name: execute-wbs
-description: "Execute a specified WBS task using the approved repository context."
+description: Execute a specified WBS task using the approved repository context.
+disable-model-invocation: true
 argument-hint: "WBS ID, for example 2.4"
-agent: agent
 ---
-
 Execute the WBS task identified by `${input:wbsId}`.
 
 ## Context loading
