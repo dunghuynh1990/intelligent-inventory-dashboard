@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 4.1
-- Name: Build Application Shell and Styling Foundation
+- WBS ID: 4.4
+- Name: Build Inventory Display
 - Workstream: UI Implementation
 - Priority: Must
 - Status: Complete
-- Planned effort: 1.00 hour
+- Planned effort: 1.75 hours
 
 ## Objective
 
-Create the dashboard's main layout and header, and establish reusable responsive styling to support later inventory, filter, and action UI work.
+Build the service-backed inventory table with vehicle identity and required stock details, current action, textual aging indicator, last-refreshed time, and manual refresh.
 
 ## Authoritative inputs
 
@@ -29,42 +29,54 @@ Create the dashboard's main layout and header, and establish reusable responsive
 
 ## Linked acceptance criteria
 
-WBS 4.1 has no directly linked acceptance-criterion IDs. Its exit criteria are the main layout, header, reusable style foundation, and styling that supports later inventory, filter, and action features.
+- AC-R1-01: Show all returned vehicles when no filter is set.
+- AC-R1-02: Show stock number, make, model, entry date, and days in stock.
+- AC-R2-12: Show a textual `Aging` badge only for aging vehicles.
+- AC-R4-01: Show loading while retrieval is pending and hide the list.
+- AC-R4-02: Show an empty-inventory message when the service returns no vehicles.
+- AC-R4-04: Show a service error and retry option when retrieval fails.
+- AC-R5-01: Show the successful load time as `Last refreshed`.
+- AC-R5-02: Refresh requests vehicles again and updates the timestamp.
 
 ## Approved assumptions and design choices used
 
-- Use the approved React, TypeScript, and Vite stack.
-- Keep the dashboard scoped to one dealership and use the wireframe as the visual reference.
-- Components present data and interactions; they do not own transport, fixture, or persistence details.
-- Keep shared state minimal; this shell does not require application or service state.
-- Do not introduce a UI or state-management dependency.
-- Keep manual refresh behavior, inventory display, filters, actions, and summary cards for their respective WBS tasks.
+- The UI depends on `InventoryService`; it does not access the mock adapter's fixtures or local storage directly.
+- The inventory is for one dealership; service retrieval returns the current full list.
+- Aging is represented by the existing `isAging` value and only by a textual badge.
+- The runtime clock is used for refresh timestamps and can be fixed in component tests.
+- The current action is displayed read-only; editing and saving actions are WBS 4.7.
+- Keep page state local, style the table responsively, and add no dependencies.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The `DashboardPage` is the application shell and `DashboardHeader` presents the dashboard identity. This task establishes layout and style tokens only; it does not implement data-backed UI features.
+`DashboardPage` owns service-load and refresh state. `InventoryTable`, `VehicleRow`, and `AgingBadge` present the returned vehicles. The service contract remains `InventoryService`; the running application supplies `MockInventoryService` at the composition root.
 
 ## In scope
 
-- Replace the Vite starter content with a semantic dashboard shell.
-- Add the dashboard header and main content landmark.
-- Establish reusable visual tokens, typography, responsive page sizing, and accessible focus styling.
-- Update the shell component test.
+- Fetch vehicles through the `InventoryService` interface.
+- Show vehicle identity, make, model, stock-entry date, days in stock, aging badge, and current action.
+- Show last-refreshed time and a manual refresh/retry action.
+- Cover loading, empty-inventory, and service-error states needed by the display.
+- Add observable component tests for successful display, refresh, and service states.
+- Update the active-task snapshot, traceability, and factual AI collaboration log.
 
 ## Explicitly out of scope
 
-- Inventory retrieval, rows, summaries, refresh behavior, loading/error states, and service wiring.
-- Search, filters, pagination, sorting, and action workflow.
-- Changes to approved requirements or system design.
-- New dependencies, authentication, backend, or global state.
+- Search, filters, pagination, and sorting (WBS 4.5 and later scope).
+- Summary cards (WBS 4.6; Should-level).
+- Adding or editing actions (WBS 4.7).
+- Broader UX-state polish beyond the loading, empty, and retrieval-error behavior required for this display.
+- Service contract, mock data, or business-rule changes.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
 - `src/App.tsx`
 - `src/App.css`
-- `src/index.css`
+- `src/main.tsx`
+- `src/components/InventoryTable.tsx`
+- `src/components/InventoryTable.css`
 - `src/App.test.tsx`
 - `docs/active-task.md`
 - `docs/traceability.md`
@@ -72,10 +84,8 @@ The `DashboardPage` is the application shell and `DashboardHeader` presents the 
 
 ## Exit criteria
 
-- Main layout exists.
-- Header exists.
-- Reusable style foundation exists.
-- Styling supports subsequent inventory, filter, and action features.
+- The table shows vehicle identity, entry date, days in stock, aging badge, and current action.
+- Last-refreshed time and manual refresh action are present.
 - Focused and complete tests, lint, and production build pass.
 
 ## Verification commands
