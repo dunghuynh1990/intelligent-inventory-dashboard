@@ -1,17 +1,28 @@
-# Intelligent Inventory Dashboard 
+# Intelligent Inventory Dashboard
 
-Technical assessment implementation for Scenario B: Intelligent Inventory Dashboard. 
+Technical assessment implementation for Scenario B: Intelligent Inventory Dashboard.
 
-## Current scope 
-- React and TypeScript frontend 
-- Vite build tooling 
-- Mocked backend through a service boundary 
-- Single-dealership demonstration 
-- Testing with Vitest and React Testing Library 
+## Scope
 
-## Current status Project skeleton created. 
-Application features are not implemented yet. 
+- React and TypeScript frontend built with Vite
+- Mocked backend behind the `InventoryService` boundary
+- Single-dealership inventory with client-side filters and aging-vehicle actions
+- Vitest and React Testing Library tests
+- Assessment-level console logging with service-call correlation IDs and a React error boundary; no production telemetry platform
 
-## Local setup 
+## Local setup
 
-```bash npm install npm run dev
+```bash
+npm install
+npm run dev
+```
+
+Use `?forceFailure=true` in the URL to demonstrate the mock service error state.
+
+## Verification
+
+```bash
+npm test
+npm run lint
+npm run build
+```

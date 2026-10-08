@@ -4,8 +4,8 @@
 
 ## Task
 
-- WBS ID: 4.6
-- Name: Build Dashboard Summary
+- WBS ID: 4.10
+- Name: Implement Minimum Observability
 - Workstream: UI Implementation
 - Priority: Should
 - Status: Complete
@@ -13,7 +13,7 @@
 
 ## Objective
 
-Display the total vehicle count, aging vehicle count, and aging vehicles with a current action above the inventory list.
+Add assessment-level service-call logging with correlation IDs and a React error boundary.
 
 ## Authoritative inputs
 
@@ -25,65 +25,66 @@ Display the total vehicle count, aging vehicle count, and aging vehicles with a 
 - `docs/decisions/decision-register.md`
 - `docs/traceability.md`
 - `docs/active-task.md`
-- `docs/wireframes/intelligent-inventory-dashboard.svg`
 
-## Linked acceptance criteria
+## Linked design choice
 
-- AC-R2-13: Show the count of aging vehicles above the list when the dashboard loads with no filters.
-- WBS 4.6 exit criteria: Display total vehicles, aging vehicle count, and aging vehicles with an action.
-- C-14: Show total, aging, and aging-with-action summary indicators; the total card is Should-level.
+- C-11: A logging wrapper, error boundary, and service-call correlation IDs are Should-level assessment work; REC-06 remains Not Applied.
 
 ## Approved assumptions and design choices used
 
-- Summary counts use the complete loaded inventory, not the currently filtered rows.
-- Aging-with-action counts only vehicles marked aging that have a non-null current action.
-- Summary is hidden until the first inventory response; a successfully loaded empty inventory displays three zero values.
-- Counts are derived in a pure helper in the existing core module.
+- Wrap the existing mock `InventoryService` at the application composition root without changing its contract or behavior.
+- Generate a unique ID per service call and include it in structured start/success/failure console log details.
+- Log and rethrow service failures; do not convert failures into success-shaped results.
+- Catch React render errors at the application boundary, log the error, and display an accessible fallback.
+- This is demonstration observability only; it does not add production telemetry, metrics, or tracing infrastructure.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-`App` derives summary counts from the complete inventory and renders the presentational `InventorySummary` above filters and results. The existing inventory service and filtering behavior are unchanged.
+`main.tsx` composes the mock service with a logging decorator and wraps the dashboard in `AppErrorBoundary`. `InventoryService` remains the UI contract; logger and correlation ID generation are injected into the wrapper for testability.
 
 ## In scope
 
-- Add a pure summary-count helper for total, aging, and aging-with-action vehicles.
-- Add the accessible summary cards and responsive styling.
-- Keep summary counts independent from search and filter state and responsive to successful action updates.
-- Add unit and component tests for computed counts, empty inventory, filtering, and action-save updates.
-- Update the active-task snapshot, traceability, and factual AI collaboration log.
+- Add a typed logger and service logging decorator.
+- Generate a per-call correlation ID for each mock service operation.
+- Log successful and failed calls with operation name and correlation ID; preserve original errors.
+- Add an application-level React error boundary with a fallback message.
+- Add tests for correlated success/failure logs and render-error capture.
+- Update system design, README, active-task snapshot, traceability, and factual AI collaboration log.
 
 ## Explicitly out of scope
 
-- Additional metrics, charts, or user interactions.
-- Changes to aging, filters, service behavior, or action workflow beyond reflecting saved actions in counts.
+- Production observability vendor, remote log shipping, metrics, tracing, or dashboards.
+- Changing the inventory service contract or mock behavior.
+- Applying REC-06 or introducing features beyond the WBS exit criteria.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- `src/core/aging.ts`
-- `src/core/aging.test.ts`
-- `src/App.tsx`
-- `src/App.test.tsx`
-- `src/components/InventorySummary.tsx`
-- `src/components/InventorySummary.css`
+- `src/observability/logger.ts`
+- `src/services/logging-inventory-service.ts`
+- `src/services/logging-inventory-service.test.ts`
+- `src/components/AppErrorBoundary.tsx`
+- `src/components/AppErrorBoundary.test.tsx`
+- `src/main.tsx`
+- `src/App.css`
+- `docs/system-design.md`
+- `README.md`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
 ## Exit criteria
 
-- Display total vehicle count, aging vehicle count, and aging-with-action count.
-- The aging count matches the loaded inventory.
-- Summary counts do not change when filters narrow the visible rows.
-- The aging-with-action count updates after a successful action save.
-- Empty inventory displays zero counts and the empty-inventory state.
+- A logging wrapper surrounds mock service calls.
+- Each service call has a correlation ID in its log records.
+- An application-level error boundary logs render errors and displays a fallback.
 - Focused and complete tests, lint, and production build pass.
 
 ## Verification commands
 
 ```bash
-npm test -- --pool=threads --maxWorkers=1 src/core/aging.test.ts src/App.test.tsx
+npm test -- --pool=threads --maxWorkers=1 src/services/logging-inventory-service.test.ts src/components/AppErrorBoundary.test.tsx
 npm test -- --pool=threads --maxWorkers=1
 npm run lint
 npm run build
