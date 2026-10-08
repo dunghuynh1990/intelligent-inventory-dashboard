@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 3.2
-- Name: Define Data Model
-- Workstream: UX & Design
+- WBS ID: 4.3
+- Name: Implement Aging-Stock Business Logic
+- Workstream: Core Logic
 - Priority: Must
 - Status: Complete
-- Planned effort: 0.50 hour
+- Planned effort: 1.00 hour
 
 ## Objective
 
-Define the TypeScript `Vehicle` model, separating stored vehicle data from calculated age data and aligning its field names with the approved requirements.
+Implement pure TypeScript functions in a non-React core module that calculate calendar days in stock, aging status, and age band using an injected reference date.
 
 ## Authoritative inputs
 
@@ -28,58 +28,66 @@ Define the TypeScript `Vehicle` model, separating stored vehicle data from calcu
 
 ## Linked acceptance criteria
 
-No WBS 3.2-specific acceptance-criterion IDs are currently listed in `docs/traceability.md`. The model is informed by:
-
-- **AC-R1-02:** vehicle display data includes make, model, stock number, entry date, and days in stock.
-- **AC-R2-05 and AC-R2-06:** invalid or future entry dates yield unknown days in stock and are not aging.
-- **AC-R3-01 and AC-R3-04:** the current action is selected and required to save; its note is optional.
+- **AC-R2-01:** 91 days is aging.
+- **AC-R2-02:** exactly 90 days is not aging.
+- **AC-R2-03:** 89 days is not aging.
+- **AC-R2-04:** ignore time of day; compare calendar dates.
+- **AC-R2-05:** invalid entry date yields unknown days and not aging without throwing.
+- **AC-R2-06:** future entry date yields unknown days and not aging without throwing.
+- **AC-R2-07:** 30/31 age-band boundary.
+- **AC-R2-08:** 60/61 age-band boundary.
+- **AC-R2-09:** 90/91 age-band boundary.
 
 ## Approved assumptions and design choices used
 
-- Vehicle identity uses a stable `vehicleId`; the approved design uses it for action persistence and stable display order.
-- Stock entry date is represented as a string because input may be empty or invalid and validation/calculation belong to later work.
-- `daysInStock` is unknown for invalid or future dates; the vehicle is not aging in those cases, and no age band is assigned.
-- Action-choice values remain open; the model uses a string and does not invent the approved fixed list.
+- Aging is strictly more than 90 complete calendar days; exactly 90 days is not aging.
+- Age bands are `0-30`, `31-60`, `61-90`, and `>90`.
+- Age is evaluated against the injected reference date; runtime callers supply the current date.
+- Calendar days use the browser-local calendar date and local start of day; time of day is ignored.
+- Stock-entry values use ISO calendar-date or date-time strings; timezone-bearing timestamps are evaluated by their browser-local date.
+- Invalid or future stock-entry dates have unknown age and are not aging.
+- Business rules belong in pure TypeScript outside React.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The data type is a contract between the inventory service and application layers. The approved intended service contract returns vehicles from `getVehicles`; the current service scaffold still exposes only `getInventoryCount`. This task defines the domain model only and does not alter the service contract.
+The non-React core module provides pure aging/date functions to the orchestration layer. It does not read the system clock itself; callers inject the reference date.
 
 ## In scope
 
-- Define `Vehicle`.
-- Separate stored vehicle/action fields from calculated age fields.
-- Include `daysInStock`, `isAging`, and `ageBand`.
-- Align field names and nullable age values with linked requirements.
+- Implement pure date/day, aging, and age-band calculations.
+- Accept an injected reference date.
+- Define the 90-day aging threshold once.
+- Safely handle invalid and future stock-entry dates.
+- Add focused unit tests for linked acceptance criteria.
 
 ## Explicitly out of scope
 
-- Aging, age-band, or validation calculations.
-- Inventory generation or mock-service expansion.
-- Changing `InventoryService`.
-- Filters, UI, proposed-action workflow, or persistence behavior.
-- Choosing fixed action/status values.
+- Generating or changing mock inventory data.
+- Filtering, React UI, dashboard orchestration, or service changes.
+- Persisting calculated values.
+- Implementing other WBS tasks, including filtering or action workflows.
 - Adding dependencies.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
+- `src/core/aging.ts`
+- `src/core/aging.test.ts`
 - `src/types/vehicle.ts`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
-No behavior tests are expected; the TypeScript build verifies the model declaration.
-
 ## Exit criteria
 
-- A `Vehicle` type is defined.
-- Stored fields are separate from calculated fields.
-- Calculated fields include `daysInStock`, `isAging`, and `ageBand`.
-- Names and types are consistent with the approved requirements and intended service contract.
-- No later WBS feature is implemented.
-- The TypeScript production build passes.
+- Pure functions live in a non-React core module.
+- Functions accept an injected reference date.
+- Days in stock, aging flag, and age band are calculated.
+- Invalid and future entry dates are handled safely.
+- The 90-day threshold is defined once.
+- Unit tests cover AC-R2-01 through AC-R2-09 without weakening existing tests.
+- Tests, lint, and production build pass.
 - Copilot stops before staging, committing, or pushing.
 
 ## Verification commands
