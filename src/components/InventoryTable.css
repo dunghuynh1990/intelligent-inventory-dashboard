@@ -6,9 +6,32 @@
 
 .inventory-table {
   width: 100%;
-  min-width: 54rem;
+  min-width: 75rem;
+  table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
+}
+
+.inventory-table th:nth-child(1) {
+  width: 12%;
+}
+
+.inventory-table th:nth-child(2),
+.inventory-table th:nth-child(3) {
+  width: 12%;
+}
+
+.inventory-table th:nth-child(4) {
+  width: 13%;
+}
+
+.inventory-table th:nth-child(5),
+.inventory-table th:nth-child(6) {
+  width: 12%;
+}
+
+.inventory-table th:nth-child(7) {
+  width: 27%;
 }
 
 .inventory-table caption {
@@ -43,6 +66,8 @@
 
 .inventory-table tbody th {
   font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
 }
 
 .inventory-table tbody tr:last-child th,
@@ -71,6 +96,10 @@
 .inventory-action small {
   color: var(--color-text-muted);
   white-space: normal;
+}
+
+.inventory-table tbody tr:hover {
+  background: var(--color-surface-muted);
 }
 
 .action-edit-button {
