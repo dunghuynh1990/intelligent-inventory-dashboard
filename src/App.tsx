@@ -3,12 +3,14 @@ import {
   filterVehicles,
   getAvailableMakes,
   getAvailableModels,
+  getInventorySummary,
   type InventoryFilterCriteria,
 } from './core/aging'
 import type { InventoryService } from './services/inventory-service'
 import type { Vehicle, VehicleAction } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
 import { InventoryFilters } from './components/InventoryFilters'
+import { InventorySummary } from './components/InventorySummary'
 import './App.css'
 
 type AppProps = {
@@ -44,6 +46,10 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
   const filteredVehicles = useMemo(
     () => filterVehicles(allVehicles, filters),
     [allVehicles, filters],
+  )
+  const summaryCounts = useMemo(
+    () => getInventorySummary(allVehicles),
+    [allVehicles],
   )
 
   const handleRefresh = async () => {
@@ -175,6 +181,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               {error}
             </p>
           )}
+          {vehicles !== null && <InventorySummary counts={summaryCounts} />}
           {vehicles !== null && vehicles.length === 0 && !isLoading && (
             <p className="inventory-empty">No vehicles in inventory.</p>
           )}

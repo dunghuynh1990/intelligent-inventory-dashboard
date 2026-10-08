@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 4.8
-- Name: Implement UX States
+- WBS ID: 4.6
+- Name: Build Dashboard Summary
 - Workstream: UI Implementation
-- Priority: Must
+- Priority: Should
 - Status: Complete
-- Planned effort: 1.00 hour
+- Planned effort: 0.50 hour
 
 ## Objective
 
-Verify that the dashboard presents the required loading, empty inventory, no-results, inventory-service error, retry, and action-save error states.
+Display the total vehicle count, aging vehicle count, and aging vehicles with a current action above the inventory list.
 
 ## Authoritative inputs
 
@@ -29,60 +29,61 @@ Verify that the dashboard presents the required loading, empty inventory, no-res
 
 ## Linked acceptance criteria
 
-- AC-R4-01: Show a loading indicator and hide the list until retrieval completes.
-- AC-R4-02: Show an empty-inventory message when retrieval returns zero vehicles.
-- AC-R4-03: Show a distinct no-results state with `Clear filters`.
-- AC-R4-04: Show an inventory-service error with retry and no rows on initial retrieval failure.
-- AC-R4-05: Enable forced failure using the existing URL switch without changing code.
-- AC-R3-05: For a failed action save, show the error and preserve the previous successful row action.
+- AC-R2-13: Show the count of aging vehicles above the list when the dashboard loads with no filters.
+- WBS 4.6 exit criteria: Display total vehicles, aging vehicle count, and aging vehicles with an action.
+- C-14: Show total, aging, and aging-with-action summary indicators; the total card is Should-level.
 
 ## Approved assumptions and design choices used
 
-- Preserve existing dashboard states and service boundaries; do not add new UX or recovery behavior beyond the linked criteria.
-- The existing `?forceFailure=true` switch configures the mock service for load and action-save demonstrations.
-- Keep inventory-error and action-save-error outcomes distinct; a save failure preserves the last successful action.
-- No dependencies, service contracts, or business rules are changed.
+- Summary counts use the complete loaded inventory, not the currently filtered rows.
+- Aging-with-action counts only vehicles marked aging that have a non-null current action.
+- Summary is hidden until the first inventory response; a successfully loaded empty inventory displays three zero values.
+- Counts are derived in a pure helper in the existing core module.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-`App` owns inventory loading/retry and dashboard rendering states. The `MockInventoryService` URL switch supplies demonstration failures; the action form renders save errors and retries the same proposed action.
+`App` derives summary counts from the complete inventory and renders the presentational `InventorySummary` above filters and results. The existing inventory service and filtering behavior are unchanged.
 
 ## In scope
 
-- Verify loading, empty, no-results, and service-error/retry states.
-- Add an app-level test that uses the URL switch and actual `MockInventoryService`, confirming forced load failure, absence of rows, and visible retry.
-- Verify the existing action-save error behavior from WBS 4.7 remains covered.
+- Add a pure summary-count helper for total, aging, and aging-with-action vehicles.
+- Add the accessible summary cards and responsive styling.
+- Keep summary counts independent from search and filter state and responsive to successful action updates.
+- Add unit and component tests for computed counts, empty inventory, filtering, and action-save updates.
 - Update the active-task snapshot, traceability, and factual AI collaboration log.
 
 ## Explicitly out of scope
 
-- New state-management, notification, error-boundary, or logging abstractions.
-- Changing the established loading, empty, filter, or action-save UI.
-- Changes to the mock-service switch, service contract, requirements, or production backend behavior.
+- Additional metrics, charts, or user interactions.
+- Changes to aging, filters, service behavior, or action workflow beyond reflecting saved actions in counts.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
+- `src/core/aging.ts`
+- `src/core/aging.test.ts`
 - `src/App.tsx`
 - `src/App.test.tsx`
-- `src/components/ProposedActionForm.tsx`
-- `src/services/mock-inventory-service.ts`
+- `src/components/InventorySummary.tsx`
+- `src/components/InventorySummary.css`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
 ## Exit criteria
 
-- Required loading, empty, no-results, and service-error states are covered by observable component tests.
-- The actual URL forced-failure switch displays the service error, no rows, and a retry control.
-- Action-save error still shows an error and preserves the last successful action.
+- Display total vehicle count, aging vehicle count, and aging-with-action count.
+- The aging count matches the loaded inventory.
+- Summary counts do not change when filters narrow the visible rows.
+- The aging-with-action count updates after a successful action save.
+- Empty inventory displays zero counts and the empty-inventory state.
 - Focused and complete tests, lint, and production build pass.
 
 ## Verification commands
 
 ```bash
-npm test -- --pool=threads --maxWorkers=1 src/App.test.tsx
+npm test -- --pool=threads --maxWorkers=1 src/core/aging.test.ts src/App.test.tsx
 npm test -- --pool=threads --maxWorkers=1
 npm run lint
 npm run build

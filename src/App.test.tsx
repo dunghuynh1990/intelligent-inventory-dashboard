@@ -95,12 +95,16 @@ describe('App', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading inventory')
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Inventory summary' }))
+      .not.toBeInTheDocument()
 
     await act(async () => {
       resolveVehicles(sampleVehicles)
     })
 
     expect(await screen.findByRole('table')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Inventory summary' }))
+      .toBeInTheDocument()
   })
 
   it('shows all returned vehicle details and a textual aging badge only for aging vehicles', async () => {
@@ -290,6 +294,41 @@ describe('App', () => {
 
     expect(await screen.findByText('No vehicles in inventory.')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    const summary = screen.getByRole('region', { name: 'Inventory summary' })
+    expect(within(summary).getAllByText('0', { selector: 'dd' })).toHaveLength(3)
+  })
+
+  it('shows inventory-wide summary counts unaffected by filters and updates after saving an action', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const summary = await screen.findByRole('region', { name: 'Inventory summary' })
+    const getCount = (label: string) => {
+      return within(summary).getByText(label).parentElement?.querySelector('dd') ?? null
+    }
+
+    expect(getCount('Total vehicles')).toHaveTextContent('5')
+    expect(getCount('Aging vehicles')).toHaveTextContent('2')
+    expect(getCount('Aging with an action')).toHaveTextContent('1')
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
+    expect(within(await screen.findByRole('table', { name: 'Vehicle inventory' }))
+      .getAllByRole('row')).toHaveLength(2)
+    expect(getCount('Total vehicles')).toHaveTextContent('5')
+    expect(getCount('Aging vehicles')).toHaveTextContent('2')
+    expect(getCount('Aging with an action')).toHaveTextContent('1')
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    const row = within(screen.getByRole('table', { name: 'Vehicle inventory' }))
+      .getByRole('row', { name: /STK-0004/ })
+    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    await waitFor(() => {
+      expect(getCount('Aging with an action')).toHaveTextContent('2')
+    })
   })
 
   it('shows a service error and retries inventory retrieval', async () => {

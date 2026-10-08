@@ -11,6 +11,12 @@ export interface InventoryFilterCriteria {
   agingOnly: boolean
 }
 
+export interface InventorySummaryCounts {
+  totalVehicles: number
+  agingVehicles: number
+  agingVehiclesWithAction: number
+}
+
 const millisecondsPerDay = 24 * 60 * 60 * 1000
 const isoCalendarDate = /^(\d{4})-(\d{2})-(\d{2})(?:$|[Tt ])/
 
@@ -107,6 +113,22 @@ export function getAvailableModels(vehicles: Vehicle[], make: string): string[] 
 
   return [...new Set(matchingVehicles.map(({ model }) => model))].sort((left, right) =>
     left.localeCompare(right),
+  )
+}
+
+export function getInventorySummary(vehicles: Vehicle[]): InventorySummaryCounts {
+  return vehicles.reduce<InventorySummaryCounts>(
+    (summary, vehicle) => {
+      summary.totalVehicles += 1
+      if (vehicle.isAging) {
+        summary.agingVehicles += 1
+        if (vehicle.currentAction) {
+          summary.agingVehiclesWithAction += 1
+        }
+      }
+      return summary
+    },
+    { totalVehicles: 0, agingVehicles: 0, agingVehiclesWithAction: 0 },
   )
 }
 

@@ -6,6 +6,7 @@ import {
   getAgeBand,
   getAvailableMakes,
   getAvailableModels,
+  getInventorySummary,
   isAging,
 } from './aging'
 
@@ -80,6 +81,7 @@ describe('vehicle aging rules', () => {
       isAging: aging,
       ageBand,
     })
+
   })
 
   it('compares local calendar dates and ignores time of day', () => {
@@ -256,5 +258,33 @@ describe('inventory filtering', () => {
     expect(results.at(-1)?.vehicleId).toBe('vehicle-200')
     expect(toyotaVehicles).toHaveLength(150)
     expect(toyotaVehicles.every(({ make }) => make === 'Toyota')).toBe(true)
+  })
+})
+
+describe('inventory summary counts', () => {
+  it('counts total, aging, and aging-with-action vehicles independently', () => {
+    const vehicles = filterTestVehicles.map((vehicle) => {
+      if (vehicle.vehicleId === 'vehicle-001') {
+        return { ...vehicle, currentAction: { action: 'Price Reduction Planned' } }
+      }
+      if (vehicle.vehicleId === 'vehicle-003') {
+        return { ...vehicle, currentAction: { action: 'Review' } }
+      }
+      return vehicle
+    })
+
+    expect(getInventorySummary(vehicles)).toEqual({
+      totalVehicles: 4,
+      agingVehicles: 1,
+      agingVehiclesWithAction: 1,
+    })
+  })
+
+  it('returns zero counts for an empty inventory', () => {
+    expect(getInventorySummary([])).toEqual({
+      totalVehicles: 0,
+      agingVehicles: 0,
+      agingVehiclesWithAction: 0,
+    })
   })
 })
