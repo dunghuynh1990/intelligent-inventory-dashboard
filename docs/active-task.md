@@ -1,66 +1,52 @@
 # Active WBS Task
 
-## Identity
+## Task
 
 - WBS ID: 2.3
-- Name: Configure testing and mock-service foundation
+- Name: Configure testing foundation
+- Status: Active
 - Priority: Must
-- Status: In Progress
 
-## Intended outcome
+## Objective
 
-Establish a working test environment for the React and TypeScript project
-and prove that a minimal service boundary can be tested.
+Establish a working automated-test environment for the React and
+TypeScript application.
 
 ## In scope
 
 - Vitest
 - jsdom
 - React Testing Library
-- jest-dom matchers
+- jest-dom
 - Test setup file
-- npm test scripts
-- One minimal application-shell test
-- One minimal asynchronous mock-service test
-- InventoryService boundary sufficient for setup validation
+- npm test script
+- One minimal application test
+- A minimal asynchronous boundary test if already included in the
+  approved 2.3 plan
 
 ## Out of scope
 
-- Vehicle data model
-- Full mock dataset
+- Full Vehicle model
+- Generated 200-vehicle dataset
 - Aging logic
 - Filters
 - Proposed-action workflow
-- Local-storage implementation
-- Dashboard styling
+- Local-storage persistence
+- Full mock-service behavior
+- Dashboard feature implementation
 - Full acceptance-test coverage
 
 ## Exit criteria
 
+- Required testing dependencies are declared.
+- Vitest uses the jsdom environment.
+- jest-dom matchers are available.
 - `npm test` passes.
+- At least one React Testing Library test passes.
+- Any included asynchronous boundary test passes.
 - `npm run lint` passes.
 - `npm run build` passes.
-- At least one React test passes.
-- At least one asynchronous service-boundary test passes.
-- No unnecessary package is introduced.
-- Every changed line can be explained.
-- AI collaboration log is updated if Copilot is used.
-
-## Expected evidence
-
-- Test command output
-- Lint command output
-- Build command output
-- Reviewed Git diff
-
-## Human-only completion step
-
-After Copilot finishes implementation and verification:
-
-- Stop before staging, committing or pushing.
-- The repository owner will review the complete diff.
-- The repository owner will create the task-level commit manually.
-- The repository owner will push the accepted commit.
-
-This section describes the human workflow. It is not an instruction for
-Copilot to run Git staging, commit or push commands.
+- Tests do not merely assert implementation details.
+- No later WBS feature was implemented.
+- Every change can be explained.
+- Copilot stops before staging, committing or pushing.
