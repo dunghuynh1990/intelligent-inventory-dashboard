@@ -6,6 +6,8 @@ This repository implements the Keyloop Scenario B Intelligent Inventory Dashboar
 
 The assessment implementation is a React, TypeScript and Vite frontend. The backend is mocked behind an `InventoryService` boundary.
 
+The repository owner uses GitHub Copilot in VS Code for AI-assisted work. Copilot must stop before staging, committing or pushing; those are human-only operations.
+
 The repository must clearly distinguish:
 
 - functionality implemented for the assessment;

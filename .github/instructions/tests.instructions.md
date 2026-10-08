@@ -1,4 +1,5 @@
 ---
+description: "Use when creating or reviewing Vitest unit tests or React Testing Library component tests."
 applyTo: "**/*.{test,spec}.{ts,tsx}"
 ---
 
@@ -17,8 +18,3 @@ applyTo: "**/*.{test,spec}.{ts,tsx}"
 - Use a fixed injected reference date for age-related tests.
 - Include invalid and future dates where the relevant acceptance criteria require them.
 - For service failures, assert the user-visible result or preserved state.
-
-
----
-applyTo: "**/*.{test,spec}.{ts,tsx}"
----

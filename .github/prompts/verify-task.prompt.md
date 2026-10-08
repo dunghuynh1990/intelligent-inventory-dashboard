@@ -1,16 +1,17 @@
 ---
 name: verify-task
-description: Verify the active WBS task without expanding scope
+description: "Verify the active WBS task against its exit criteria without changing files."
+argument-hint: "Optional WBS ID; defaults to docs/active-task.md"
 agent: agent
 ---
 
-Verify the implementation against `docs/wbs-current-task.md`.
+Verify the implementation against `docs/active-task.md` and its linked task in `docs/wbs.md` and `docs/requirements-baseline.md`.
 
-Do not add features.
+Do not edit files or add features. If a WBS ID is supplied, confirm it matches the active-task snapshot; report a mismatch instead of silently switching tasks.
 
 Perform these checks:
 
-1. Compare each exit criterion with the current implementation.
+1. Compare each active-task exit criterion with the current implementation.
 2. Inspect changed source and test files.
 3. Identify unsupported assumptions.
 4. Identify implementation outside the active task.

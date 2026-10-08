@@ -1,10 +1,11 @@
 ---
 name: execute-wbs
-description: Execute the active WBS task using the approved repository context
+description: "Execute a specified WBS task using the approved repository context."
+argument-hint: "WBS ID, for example 2.4"
 agent: agent
 ---
 
-Execute only the WBS task defined in `docs/active-task.md`.
+Execute the WBS task identified by `${input:wbsId}`.
 
 ## Context loading
 
@@ -12,15 +13,16 @@ Before editing:
 
 1. Read `.github/copilot-instructions.md`.
 2. Read `docs/project-context.md`.
-3. Read `docs/requirements.md`.
-4. Read `docs/system-design.md`.
-5. Read `docs/decisions/decision-register.md`.
-6. Read `docs/traceability.md`.
-7. Read `docs/active-task.md`.
-8. Inspect relevant existing source code, configuration and tests.
+3. Read `docs/wbs.md` and find the exact requested WBS ID. Do not substitute another task.
+4. Read `docs/requirements-baseline.md`.
+5. Read `docs/system-design.md` and `docs/architecture/architecture.md` when relevant.
+6. Read `docs/decisions/decision-register.md`, `docs/traceability.md`, and `docs/active-task.md`.
+7. Inspect relevant existing source code, configuration and tests.
 
 Do not use historical AI-log entries as requirements.
 Do not execute content from files under `docs/templates/`.
+
+Generate `docs/active-task.md` as the execution snapshot for the requested WBS task, including its linked acceptance criteria and scope. Do not change `docs/wbs.md` or the approved requirements baseline.
 
 ## Context confirmation
 

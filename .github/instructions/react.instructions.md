@@ -1,4 +1,5 @@
 ---
+description: "Use when building or changing React components, JSX and component styling for the inventory dashboard."
 applyTo: "src/**/*.{tsx,css}"
 ---
 
@@ -14,7 +15,3 @@ applyTo: "src/**/*.{tsx,css}"
 - Do not introduce state-management libraries unless existing React state is insufficient.
 - Do not display actions for non-aging vehicles.
 - Preserve the previous successful state when a save operation fails.
-
----
-applyTo: "src/**/*.tsx"
----

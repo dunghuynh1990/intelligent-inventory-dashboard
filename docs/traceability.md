@@ -2,7 +2,9 @@
 
 | WBS | Requirement or AC | Intended implementation | Intended verification | Status |
 |---|---|---|---|---|
-| 2.3 | Test foundation | Vitest, jsdom, RTL setup | Sample component and service tests | Active |
+| 2.3 | Test foundation | Vitest, jsdom, RTL setup | Sample component and service tests | Complete |
+| 2.4 | AI-assisted repository workflow and factual collaboration evidence | Repository instructions, path-specific instructions, WBS prompts, procedure, active-task snapshot, and collaboration log | Review instruction/prompt consistency; run `npm test`, `npm run lint`, `npm run build`, `git status`, and `git diff` | In Progress |
+| 6.3 | Initial non-functional strategy | Document assessment and future direction for scalability, performance, reliability, maintainability, observability, and owner-added security consideration | Review `docs/system-design.md` against WBS 6.3 exit criteria and verify no future capability is claimed as implemented | Not Started |
 | 4.3 | AC-R2-01 to AC-R2-09 | Pure aging functions | Unit tests for boundaries and invalid dates | Not Started |
 | 4.5 | AC-R1-03 to AC-R1-09 | Pure filters and filter UI | Unit and component tests | Not Started |
 | 4.7 | AC-R3-01 to AC-R3-05 | Aging action workflow | Component and service tests | Not Started |
