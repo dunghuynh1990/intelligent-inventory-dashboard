@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 4.3
-- Name: Implement Aging-Stock Business Logic
-- Workstream: Core Logic
+- WBS ID: 5.1
+- Name: Write Aging-Rule Unit Tests
+- Workstream: Testing
 - Priority: Must
 - Status: Complete
-- Planned effort: 1.00 hour
+- Planned effort: 1.25 hours
 
 ## Objective
 
-Implement pure TypeScript functions in a non-React core module that calculate calendar days in stock, aging status, and age band using an injected reference date.
+Verify the aging business rules with deterministic unit tests using a fixed reference date, covering threshold boundaries, invalid and future dates, and all age-band boundaries.
 
 ## Authoritative inputs
 
@@ -28,71 +28,69 @@ Implement pure TypeScript functions in a non-React core module that calculate ca
 
 ## Linked acceptance criteria
 
+WBS 5.1 had no prior row in the traceability table; its mapping is added as part of this task. The test cases cover:
+
 - **AC-R2-01:** 91 days is aging.
 - **AC-R2-02:** exactly 90 days is not aging.
 - **AC-R2-03:** 89 days is not aging.
-- **AC-R2-04:** ignore time of day; compare calendar dates.
+- **AC-R2-04:** time of day is ignored when comparing calendar dates.
 - **AC-R2-05:** invalid entry date yields unknown days and not aging without throwing.
 - **AC-R2-06:** future entry date yields unknown days and not aging without throwing.
 - **AC-R2-07:** 30/31 age-band boundary.
 - **AC-R2-08:** 60/61 age-band boundary.
 - **AC-R2-09:** 90/91 age-band boundary.
+- **AC-R2-11:** injected reference date affects age evaluation.
 
 ## Approved assumptions and design choices used
 
 - Aging is strictly more than 90 complete calendar days; exactly 90 days is not aging.
 - Age bands are `0-30`, `31-60`, `61-90`, and `>90`.
-- Age is evaluated against the injected reference date; runtime callers supply the current date.
-- Calendar days use the browser-local calendar date and local start of day; time of day is ignored.
-- Stock-entry values use ISO calendar-date or date-time strings; timezone-bearing timestamps are evaluated by their browser-local date.
+- Age is evaluated against a fixed injected reference date in tests; runtime callers provide the current date.
+- Calendar-day calculation uses local calendar dates and ignores time of day.
 - Invalid or future stock-entry dates have unknown age and are not aging.
-- Business rules belong in pure TypeScript outside React.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The non-React core module provides pure aging/date functions to the orchestration layer. It does not read the system clock itself; callers inject the reference date.
+The aging rules are pure TypeScript functions outside React. The unit tests exercise those functions with fixed reference dates and do not depend on UI or service behavior.
 
 ## In scope
 
-- Implement pure date/day, aging, and age-band calculations.
-- Accept an injected reference date.
-- Define the 90-day aging threshold once.
-- Safely handle invalid and future stock-entry dates.
-- Add focused unit tests for linked acceptance criteria.
+- Verify fixed-date aging tests cover 89, 90, and 91 days.
+- Verify invalid and future dates and all age-band boundaries.
+- Demonstrate that a deliberate mutation to an aging rule causes the relevant test to fail.
+- Record factual AI-assisted testing evidence.
 
 ## Explicitly out of scope
 
-- Generating or changing mock inventory data.
-- Filtering, React UI, dashboard orchestration, or service changes.
-- Persisting calculated values.
-- Implementing other WBS tasks, including filtering or action workflows.
+- Changing aging-rule behavior or its approved threshold.
+- Mock data generation, filtering, React UI, dashboard orchestration, or service changes.
 - Adding dependencies.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- `src/core/aging.ts`
 - `src/core/aging.test.ts`
-- `src/types/vehicle.ts`
+- `src/core/aging.ts` (temporary mutation for test-sensitivity verification only; restore afterward)
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
+The existing aging tests already appear to cover the stated cases; preserve their assertions and add tests only if verification shows a gap.
+
 ## Exit criteria
 
-- Pure functions live in a non-React core module.
-- Functions accept an injected reference date.
-- Days in stock, aging flag, and age band are calculated.
-- Invalid and future entry dates are handled safely.
-- The 90-day threshold is defined once.
-- Unit tests cover AC-R2-01 through AC-R2-09 without weakening existing tests.
-- Tests, lint, and production build pass.
+- Tests use a fixed reference date and cover 89, 90, and 91 days.
+- Tests cover invalid and future dates and all age-band boundaries.
+- At least one deliberate mutation causes its relevant test to fail.
+- An AI-log entry records the actual test work and results.
+- The full test suite, lint, and production build pass after restoring the original rule.
 - Copilot stops before staging, committing, or pushing.
 
 ## Verification commands
 
 ```bash
+npm test -- --pool=threads src/core/aging.test.ts -t "classifies 90 days"
 npm test -- --pool=threads
 npm run lint
 npm run build
