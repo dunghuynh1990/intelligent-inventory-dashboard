@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 3.3
-- Name: Update Component Structure After Wireframe
-- Workstream: UX & Design
+- WBS ID: 4.1
+- Name: Build Application Shell and Styling Foundation
+- Workstream: UI Implementation
 - Priority: Must
 - Status: Complete
-- Planned effort: 0.25 hour
+- Planned effort: 1.00 hour
 
 ## Objective
 
-Reconcile the initial high-level UI component responsibilities with the WBS 3.1 wireframe, record deviations for WBS 6.4, and avoid unnecessary hooks or global state.
+Create the dashboard's main layout and header, and establish reusable responsive styling to support later inventory, filter, and action UI work.
 
 ## Authoritative inputs
 
@@ -29,54 +29,62 @@ Reconcile the initial high-level UI component responsibilities with the WBS 3.1 
 
 ## Linked acceptance criteria
 
-WBS 3.3 has no directly linked acceptance-criterion IDs. The component map is reconciled against the approved responsibilities and wireframe, which reflect AC-R1-01/02/04/05/06/07/09/10, AC-R2-12/13, AC-R3-01/03, and AC-R5-01/02.
+WBS 4.1 has no directly linked acceptance-criterion IDs. Its exit criteria are the main layout, header, reusable style foundation, and styling that supports later inventory, filter, and action features.
 
 ## Approved assumptions and design choices used
 
+- Use the approved React, TypeScript, and Vite stack.
+- Keep the dashboard scoped to one dealership and use the wireframe as the visual reference.
 - Components present data and interactions; they do not own transport, fixture, or persistence details.
-- UI depends on `InventoryService`; age and filter business rules remain in pure TypeScript.
-- Shared state remains minimal and owned by the dashboard page unless later requirements justify otherwise.
-- The total-inventory summary is Should-level (C-14); its component can be omitted if behind.
-- No custom hooks or global-state library is introduced.
-- Deviations or unresolved implementation choices are recorded for WBS 6.4, not resolved by this task.
+- Keep shared state minimal; this shell does not require application or service state.
+- Do not introduce a UI or state-management dependency.
+- Keep manual refresh behavior, inventory display, filters, actions, and summary cards for their respective WBS tasks.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The initial design describes broad UI, orchestration, and core responsibilities. This task records a small presentation-component map aligned to the single-dashboard wireframe without implementing it.
+The `DashboardPage` is the application shell and `DashboardHeader` presents the dashboard identity. This task establishes layout and style tokens only; it does not implement data-backed UI features.
 
 ## In scope
 
-- Reconcile the component list with the WBS 3.1 wireframe.
-- Record component responsibilities and the minimal state/service boundary.
-- Record deviations for WBS 6.4.
+- Replace the Vite starter content with a semantic dashboard shell.
+- Add the dashboard header and main content landmark.
+- Establish reusable visual tokens, typography, responsive page sizing, and accessible focus styling.
+- Update the shell component test.
 
 ## Explicitly out of scope
 
-- Implementing React components, hooks, state, styling, or application behavior.
-- Changing requirements, architecture diagrams, or approved design choices.
-- Introducing global state or unnecessary abstractions.
+- Inventory retrieval, rows, summaries, refresh behavior, loading/error states, and service wiring.
+- Search, filters, pagination, sorting, and action workflow.
+- Changes to approved requirements or system design.
+- New dependencies, authentication, backend, or global state.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- `docs/system-design.md`
+- `src/App.tsx`
+- `src/App.css`
+- `src/index.css`
+- `src/App.test.tsx`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
-- `docs/wireframes/intelligent-inventory-dashboard.svg`
 
 ## Exit criteria
 
-- The initial component list is reconciled with the wireframe.
-- Deviations are recorded for WBS 6.4.
-- No unnecessary custom-hook or global-state layer is proposed or implemented.
-- `git diff --check` passes.
-- Copilot stops before staging, committing, or pushing.
+- Main layout exists.
+- Header exists.
+- Reusable style foundation exists.
+- Styling supports subsequent inventory, filter, and action features.
+- Focused and complete tests, lint, and production build pass.
 
 ## Verification commands
 
 ```bash
+npm test -- --pool=threads src/App.test.tsx
+npm test -- --pool=threads
+npm run lint
+npm run build
 git diff --check
 git status
 git diff
