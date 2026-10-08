@@ -36,6 +36,21 @@ Mock implementation and fixture data
 - Use semantic HTML and accessible controls; preserve keyboard support and responsive layouts.
 - Keep styling consistent with existing project conventions and avoid adding a UI library without an approved requirement.
 
+### CR data and view-state design delta (WBS 3.5)
+
+The following extends the design for CR-linked acceptance criteria. These additions are design targets, not a claim that the current source implements them. CR dispositions and D30-D40 remain subject to owner confirmation under WBS 1.5; proposed choices are marked accordingly.
+
+| Data | Design |
+|---|---|
+| Vehicle identity | Keep the stable `vehicleId` and stock number; add an opaque, fake 17-character VIN for display and search only. Do not validate or decode it. |
+| Derived entry-date data | Keep age and age band derived. Classify a missing, invalid or future stock-entry date separately from a valid date; for an issue, age is unknown and the vehicle is not aging. Surface `Missing entry date`, `Invalid entry date` or `Future entry date`; an issue is not eligible for an action. |
+| Current action | Keep one current action per vehicle. Extend its shape to `{ action, note?, loggedAt }`, where `loggedAt` records the save time used for the AC-R3-07 relative-day label. The five C-28 placeholder action values are Price Reduction Planned, Transfer to Another Site, Send to Auction, Promote in Campaign and Under Review; OQ-07 remains open. There is no action history. |
+| Filter state | Extend the existing search, make, model, age-band and aging-only filters with `action: any | no action yet | has an action`. `No action yet` means aging and without a current action; `Has an action` means a current action exists. The Data issues view selects vehicles with an entry-date issue. Active filters continue to combine with AND. |
+| Page state | Keep the current page and page size in dashboard-local state. Proposed page sizes are 10, 20, 50 and 100, defaulting to 20; reset to page 1 when filters change and clamp the page when results shrink. Do not persist page or page size. |
+| Sort state | If column sorting passes its separate Nice-level gate, keep an optional column and a three-state direction (none, ascending or descending) in dashboard-local state for the current session only. With no sort, retain vehicle-ID order; optional sorting puts unknown values last and uses vehicle ID to break ties. D32 remains Proposed, so sorting is not part of the Must implementation. |
+
+The mock persistence boundary continues to store only the current proposed action for a vehicle, now including its logged time. Filters, page, page size and sort are view state and are not persisted. Search, issue classification, filtering and pagination remain pure client-side operations over the full result returned by `getVehicles`.
+
 ### Wireframe-aligned assessment component structure
 
 The initial architecture's React UI responsibilities are reconciled with the [low-fidelity dashboard wireframe](./wireframes/intelligent-inventory-dashboard.svg) as this presentation-level component list:
@@ -43,21 +58,24 @@ The initial architecture's React UI responsibilities are reconciled with the [lo
 | Component | Responsibility |
 |---|---|
 | `DashboardPage` | Own dashboard-local view state, load/refresh orchestration, and compose the dashboard sections. |
-| `DashboardHeader` | Show the dashboard heading, last-refreshed time, and manual refresh control. |
-| `InventorySummary` | Present total vehicles, aging stock, and aging vehicles with an action. The total-vehicle card is Should-level and may be omitted if behind. |
-| `InventoryFilters` | Present search, make, model, age-band, aging-only, and reset controls; receive values and callbacks from the page. |
+| `DashboardHeader` | Show the dashboard heading, reference date, last-refreshed information, and manual refresh control; compose `FreshnessIndicator`. |
+| `FreshnessIndicator` | Show the visible last-refreshed time alongside the refresh control. Any elapsed-time thresholds remain proposed placeholders, not a production freshness target. |
+| `InventorySummary` | Present total vehicles, aging stock, and aging vehicles with an action; provide the Data issues entry point. The total-vehicle card is Should-level and may be omitted if behind. |
+| `InventoryFilters` | Present search, make, model, age-band, aging-only, action-filter and reset controls; receive values and callbacks from the page. |
 | `InventoryTable` | Present vehicle rows and required stock fields; delegate row-specific content to `VehicleRow`. |
-| `VehicleRow` | Present one vehicle's fields, current action, and row-level action entry point when eligible. |
-| `AgingBadge` | Show the textual `Aging` indicator for aging rows; color is supplemental only. |
+| `VehicleRow` | Present stock number, VIN, make, model, entry date, age, status/data issue and current action with its logged-time label; expose the action entry point only when eligible. |
+| `AgingBadge` | Show the textual `Aging` indicator for aging rows; color is supplemental only. Data issues use a distinct textual issue label. |
 | `ProposedActionForm` | Present action and optional note inputs for an eligible vehicle and report save events to the page. |
+| `InventoryPager` | Present client-side page-size and page-navigation controls; report page changes to the page. |
 
-The page owns the minimal shared filter, inventory, refresh, and selected-action-form state. Filtering and aging calculations remain in pure core functions; inventory retrieval and updates remain behind `InventoryService`. This structure does not require a custom-hook layer or global-state library.
+The page owns the minimal shared inventory, filter, page, optional gated sort, refresh, and selected-action-form state. Summary counts are calculated from the unfiltered inventory; the pager operates on filtered results. Filtering and aging calculations remain in pure core functions; inventory retrieval and updates remain behind the unchanged `InventoryService` contract: `getVehicles(): Promise<Vehicle[]>` and `updateVehicleAction(vehicleId: string, action: VehicleAction): Promise<void>`. This structure does not require a custom-hook layer or global-state library.
 
 ### Wireframe reconciliation notes for WBS 6.4
 
 - The wireframe now includes the C-14 summary cards and the AC-R1-09 Reset filters control; the total-vehicle card remains Should-level.
 - The action form is shown as a conceptual expanded interaction for an aging row; final action values remain unresolved under OQ-07.
-- Pagination is not included because it is not in the approved assessment requirements.
+- Client-side pagination is a proposed CR addition (C-20); do not imply that it is already implemented or a production API requirement.
+- CR data additions and the Data issues entry point are design targets subject to the pending owner decision on CR dispositions.
 - Forced-failure and load-scenario controls are not part of the dashboard component list; forced failure remains an adapter test/demo configuration.
 
 ## Initial Non-Functional Strategy
