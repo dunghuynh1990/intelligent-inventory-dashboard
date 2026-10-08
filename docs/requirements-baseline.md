@@ -3,8 +3,8 @@
 ## Document Control
 
 - **Scenario:** Scenario B: Intelligent Inventory Dashboard
-- **Baseline version:** v3
-- **Source:** `Keyloop_ScenarioB_Requirements_Baseline_v3.xlsx`
+- **Baseline version:** v4
+- **Source:** `docs/cr/Keyloop_ScenarioB_Requirements_Baseline_v4.xlsx`
 - **Purpose:** Authoritative implementation-facing requirements baseline for GitHub Copilot
 - **Reference date R:** Today at runtime; fixed and injected in tests
 - **Priority rule:** Must = verified by an automated test or one recorded manual check; Should = quality item
@@ -27,18 +27,18 @@ When implementing a WBS task:
 
 | Group | Must | Should | Total |
 |---|---:|---:|---:|
-| R1 Inventory Visualization | 11 | 0 | 11 |
-| R2 Aging Stock Identification | 12 | 1 | 13 |
+| R1 Inventory Visualization | 11 | 9 | 20 |
+| R2 Aging Stock Identification | 12 | 7 | 19 |
 | R3 Actionable Insights | 6 | 0 | 6 |
-| R4 UX States | 5 | 0 | 5 |
-| R5 Data Freshness | 2 | 0 | 2 |
-| **Total** | **36** | **1** | **37** |
+| R4 UX States | 5 | 2 | 7 |
+| R5 Data Freshness | 2 | 4 | 6 |
+| **Total** | **36** | **25** | **61** |
 
 | Test level | All | Must |
 |---|---:|---:|
-| Unit | 19 | 19 |
-| Component | 17 | 16 |
-| Manual | 1 | 1 |
+| Unit | 28 | 19 |
+| Component | 31 | 16 |
+| Manual | 2 | 1 |
 
 ---
 
@@ -48,12 +48,12 @@ When implementing a WBS task:
 
 ### AC-R1-01: Display all returned vehicles
 
-- **Given:** The service returns N vehicles and no filter is set.
+- **Given:** The service returns N vehicles (N not larger than the page size) and no filter is set.
 - **When:** The dashboard finishes loading.
 - **Then:** The list shows N vehicle rows.
 - **Source:** Brief: display a filterable list of all vehicles in a dealership's inventory; Decision 4.
 - **Linked assumptions:** A-09, A-11
-- **Linked design choices:** C-03, C-12
+- **Linked design choices:** C-03, C-12, C-20
 - **Test level:** Component
 - **Priority:** Must
 
@@ -71,10 +71,10 @@ When implementing a WBS task:
 
 - **Given:** The generated vehicle list.
 - **When:** Search text `civ` is applied.
-- **Then:** Only vehicles whose stock number, make or model contains `civ`, case-insensitive, are returned.
+- **Then:** Only vehicles whose stock number, make, model or VIN contains `civ`, case-insensitive, are returned.
 - **Source:** Decision 8; PROPOSED searched fields.
 - **Linked assumptions:** A-14
-- **Linked design choices:** C-09, C-10
+- **Linked design choices:** C-09, C-10, C-21
 - **Test level:** Unit
 - **Priority:** Must
 
@@ -155,12 +155,108 @@ When implementing a WBS task:
 ### AC-R1-11: Stable display order
 
 - **Given:** The generated vehicle list in any input order.
-- **When:** The list is prepared for display, with or without filters.
+- **When:** The list is prepared for display, with or without filters, and no sort is selected.
 - **Then:** Vehicles are returned in ascending vehicle-ID order.
 - **Source:** PROPOSED stable order; not a user sorting feature.
 - **Linked design choices:** C-18
 - **Test level:** Unit
 - **Priority:** Must
+
+### AC-R1-12: Display VIN
+
+- **Given:** A vehicle has a 17-character VIN.
+- **When:** Its row is displayed.
+- **Then:** The row shows the full VIN.
+- **Source:** CR-01 (README s8 VIN column); PROPOSED.
+- **Linked assumptions:** A-21
+- **Linked design choices:** C-13
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R1-13: Search VIN
+
+- **Given:** The generated vehicle list and the VIN of vehicle V010.
+- **When:** The first 8 characters of that VIN, in lower case, are used as the search text.
+- **Then:** V010 is returned and every returned vehicle contains that text in its stock number, VIN, make or model.
+- **Source:** CR-01; OQ-01; PROPOSED searched field: VIN.
+- **Linked assumptions:** A-14, A-21
+- **Linked design choices:** C-21
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R1-14: Filter by no action
+
+- **Given:** The generated vehicle list and reference date R.
+- **When:** Only the action filter `No action yet` is applied.
+- **Then:** Every returned vehicle is aging and has no current action, and the count equals the number of such vehicles in the data.
+- **Source:** CR-02 (README s6 Action); PROPOSED.
+- **Linked assumptions:** A-05, A-17
+- **Linked design choices:** C-21
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R1-15: Filter by has action
+
+- **Given:** The generated vehicle list with some saved actions.
+- **When:** Only the action filter `Has an action` is applied.
+- **Then:** Every returned vehicle has a current action, and the count equals the number of such vehicles in the data.
+- **Source:** CR-02; PROPOSED.
+- **Linked assumptions:** A-17
+- **Linked design choices:** C-21
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R1-16: Clamp requested page
+
+- **Given:** 45 vehicles and a page size of 20.
+- **When:** Pages 1, 3 and 9 are requested.
+- **Then:** Page 1 has 20 vehicles, page 3 has the last 5, and page 9 is treated as page 3 (the page number is clamped).
+- **Source:** CR-03 (README s8 Pager); PROPOSED; revises D19.
+- **Linked assumptions:** A-11
+- **Linked design choices:** C-20, C-21
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R1-17: Show page result count
+
+- **Given:** The service returns 200 vehicles and the default page size.
+- **When:** The dashboard finishes loading.
+- **Then:** 20 rows are shown, the count reads `Showing 1-20 of 200` and the pager shows page 1 of 10.
+- **Source:** CR-03, CR-04 (README s7-s8); PROPOSED.
+- **Linked assumptions:** A-11
+- **Linked design choices:** C-20
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R1-18: Reset page when filters change
+
+- **Given:** Page 3 is shown.
+- **When:** Any filter is changed.
+- **Then:** Page 1 is shown.
+- **Source:** CR-03 (README Interactions `Filtering`); PROPOSED.
+- **Linked design choices:** C-20
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R1-19: Sort rows by days in stock
+
+- **Given:** Vehicles with days in stock 10, 40, unknown and 40 (the two 40s have different IDs).
+- **When:** The rows are sorted by days in stock ascending, then descending.
+- **Then:** Ascending gives 10, 40, 40, unknown and descending gives 40, 40, 10, unknown; equal values stay in vehicle ID order.
+- **Source:** CR-05 (Nice; README s8 Sorting); PROPOSED.
+- **Linked design choices:** C-18, C-21
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R1-20: Cycle sorting from a column header
+
+- **Given:** No sort is selected.
+- **When:** The manager selects the `Days in stock` header three times.
+- **Then:** The order is descending, then ascending, then back to vehicle ID order, and `aria-sort` on the header reads descending, ascending, then none.
+- **Source:** CR-05 (Nice); PROPOSED.
+- **Linked design choices:** C-18
+- **Test level:** Component
+- **Priority:** Should
 
 ## R2: Aging Stock Identification
 
@@ -294,6 +390,72 @@ When implementing a WBS task:
 - **Test level:** Component
 - **Priority:** Should
 
+### AC-R2-14: Classify entry-date issues
+
+- **Given:** Entry dates that are empty, `not-a-date`, after reference date R, and a valid past date.
+- **When:** The entry date is checked.
+- **Then:** The issues are `Missing entry date`, `Invalid entry date`, `Future entry date` and none, in that order.
+- **Source:** CR-06 (README Interactions `Bad dates`); OQ-05; PROPOSED labels.
+- **Linked assumptions:** A-12
+- **Linked design choices:** C-25
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R2-15: Display data issues
+
+- **Given:** A vehicle has an invalid entry date.
+- **When:** Its row is displayed.
+- **Then:** The row shows `Unknown` days in stock and the issue text, no Aging badge and no action control, and the vehicle appears when the Data issues link is selected.
+- **Source:** CR-06; PROPOSED.
+- **Linked assumptions:** A-12
+- **Linked design choices:** C-25
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R2-16: Generate data-issue examples
+
+- **Given:** Reference date R.
+- **When:** The mock data is generated.
+- **Then:** It contains one vehicle each with a missing, an invalid and a future entry date, and the 89/90/91-day vehicles of AC-R2-10 are unchanged.
+- **Source:** CR-06 (HTML `generate()` bad{}); PROPOSED.
+- **Linked assumptions:** A-12
+- **Linked design choices:** C-07, C-25
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R2-17: Apply the early-warning window
+
+- **Given:** Vehicles with 83, 84, 90 and 91 days in stock.
+- **When:** The early-warning rule is evaluated.
+- **Then:** 84 and 90 are `turning aging soon`; 83 and 91 are not.
+- **Source:** CR-09 (Nice; README s3); PROPOSED window of 7 days.
+- **Linked assumptions:** A-19
+- **Linked design choices:** C-22
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R2-18: Filter from the early-warning card
+
+- **Given:** The `Turning aging in 7 days` card shows K.
+- **When:** The manager selects the card.
+- **Then:** The list shows only those K vehicles and the card is marked pressed; selecting it again clears the filter.
+- **Source:** CR-09 (Nice); PROPOSED.
+- **Linked assumptions:** A-19
+- **Linked design choices:** C-22, C-29
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R2-19: Show age profile counts and shares
+
+- **Given:** The age band counts are known.
+- **When:** The age profile is shown.
+- **Then:** Each band segment shows its count and share, and selecting a band applies the age-band filter (selecting it again clears it).
+- **Source:** CR-11 (Nice; README s4); PROPOSED; partly answers OQ-06.
+- **Linked assumptions:** A-04
+- **Linked design choices:** C-29
+- **Test level:** Component
+- **Priority:** Should
+
 ## R3: Actionable Insights
 
 ### AC-R3-01: Save an action
@@ -352,6 +514,38 @@ When implementing a WBS task:
 - **Test level:** Component
 - **Priority:** Must
 
+### AC-R3-07: Show action logged time
+
+- **Given:** An action is saved on a vehicle at time T.
+- **When:** The dashboard is shown on the same day, then three days later.
+- **Then:** The row shows `Logged today`, then `Logged 3 days ago`.
+- **Source:** CR-07 (HTML `actionAgo()`); PROPOSED.
+- **Linked assumptions:** A-20
+- **Linked design choices:** C-28
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R3-08: Flag stale actions
+
+- **Given:** One aging vehicle has an action logged 14 days ago and another logged 15 days ago.
+- **When:** The rows are shown.
+- **Then:** Only the 15-day action shows the `check progress` flag.
+- **Source:** CR-08 (Nice); PROPOSED placeholder of 14 days.
+- **Linked assumptions:** A-20
+- **Linked design choices:** C-28
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R3-09: Show a correlation reference on save failure
+
+- **Given:** Forced failure is on.
+- **When:** Saving an action fails.
+- **Then:** The inline error shows a reference that matches the correlation ID logged for the failed service call.
+- **Source:** CR-29 (README Logging wrapper); needs WBS 4.10; not applicable if 4.10 is dropped.
+- **Linked design choices:** C-11, C-16
+- **Test level:** Component
+- **Priority:** Should
+
 ## R4: UX States
 
 ### AC-R4-01: Loading state
@@ -380,10 +574,10 @@ When implementing a WBS task:
 - **Test level:** Component
 - **Priority:** Must
 
-### AC-R4-04: Service error and retry
+### AC-R4-04: First-load service error and retry
 
 - **Given:** Forced failure is enabled.
-- **When:** The dashboard loads vehicles.
+- **When:** The dashboard loads vehicles for the first time.
 - **Then:** An error with a retry option is shown and no rows are shown.
 - **Linked design choices:** C-04
 - **Test level:** Component
@@ -397,6 +591,28 @@ When implementing a WBS task:
 - **Linked design choices:** C-05
 - **Test level:** Manual
 - **Priority:** Must
+
+### AC-R4-06: Preserve rows after refresh failure
+
+- **Given:** Vehicles are loaded and forced failure is then switched on.
+- **When:** The manager selects `Refresh`.
+- **Then:** An error banner with Retry is shown, the existing rows stay visible and `Last refreshed` keeps the earlier time.
+- **Source:** CR-17 (README Interactions `Refresh`); decision for the mockup's open code comment.
+- **Linked assumptions:** A-08
+- **Linked design choices:** C-24
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R4-07: Demonstrate reviewer scenarios
+
+- **Given:** The app is running in a browser.
+- **When:** The reviewer switches to the empty-inventory scenario, or to a 25-minute data age, without changing code.
+- **Then:** The empty-inventory message, or the amber freshness indicator, is displayed.
+- **Source:** CR-22 (README `demo bar`); PROPOSED.
+- **Linked assumptions:** A-18
+- **Linked design choices:** C-26
+- **Test level:** Manual
+- **Priority:** Should
 
 ## R5: Data Freshness
 
@@ -418,6 +634,50 @@ When implementing a WBS task:
 - **Test level:** Component
 - **Priority:** Must
 
+### AC-R5-03: Calculate freshness levels
+
+- **Given:** Last-refreshed ages of 14, 15, 59 and 60 minutes.
+- **When:** The freshness level is calculated.
+- **Then:** They map to normal, amber, amber and warning.
+- **Source:** CR-17 (README s1); PROPOSED placeholders; OQ-11.
+- **Linked assumptions:** A-18
+- **Linked design choices:** C-24
+- **Test level:** Unit
+- **Priority:** Should
+
+### AC-R5-04: Show elapsed refresh time
+
+- **Given:** A fixed clock and a successful load 25 minutes ago.
+- **When:** The header is shown.
+- **Then:** `Last refreshed` shows the time and `25 min ago`, marked amber.
+- **Source:** CR-17; PROPOSED.
+- **Linked assumptions:** A-18
+- **Linked design choices:** C-24
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R5-05: Warn when data is stale
+
+- **Given:** The data is 60 minutes old.
+- **When:** The dashboard is shown.
+- **Then:** A stale-data warning with `Refresh now` is shown above the summary.
+- **Source:** CR-17 (README s2); PROPOSED.
+- **Linked assumptions:** A-18
+- **Linked design choices:** C-24
+- **Test level:** Component
+- **Priority:** Should
+
+### AC-R5-06: Show reference date
+
+- **Given:** Reference date R.
+- **When:** The header is shown.
+- **Then:** `Reference date` shows R as DD-MMM-YYYY.
+- **Source:** CR-17 (README s1); PROPOSED.
+- **Linked assumptions:** A-02
+- **Linked design choices:** C-24
+- **Test level:** Component
+- **Priority:** Should
+
 ---
 
 # 2. Assumptions
@@ -435,11 +695,16 @@ When implementing a WBS task:
 | A-09 | Dashboard serves a single dealership. | AC-R1-01 |
 | A-10 | Persistence means same browser and user after reload. | AC-R3-02 |
 | A-11 | About 200 vehicles is demonstration scale, not a capacity target. | AC-R1-01, AC-R2-10 |
-| A-12 | Invalid or future date means unknown age and not aging. | AC-R2-05, AC-R2-06 |
-| A-13 | Filters combine with AND and clear resets all filters. | AC-R1-08, AC-R1-09 |
-| A-14 | Search matches stock number, make and model, case-insensitive. | AC-R1-03 |
+| A-12 | PROPOSED: an invalid or future entry date has unknown age and is not aging; it shows Unknown with an issue tag and is available in the Data issues view. | AC-R2-05/06/14/15/16 |
+| A-13 | Filters combine with AND and Clear resets all filters; summary, Data issues and preset views replace the current filters. | AC-R1-08/09 |
+| A-14 | PROPOSED: Search matches stock number, VIN, make and model, case-insensitive. | AC-R1-03/13 |
 | A-15 | An action must be selected; a note alone is insufficient. | AC-R3-04 |
 | A-16 | Calendar day uses browser local date and local start of day; time is ignored. | AC-R2-04, AC-R2-11 |
+| A-17 | PROPOSED: `No action yet` returns aging vehicles without a current action; `Has an action` returns vehicles with a current action. | AC-R1-14/15 |
+| A-18 | PROPOSED: Freshness is normal under 15 minutes, amber from 15, and warning from 60; these are placeholders. | AC-R4-07, AC-R5-03/04/05 |
+| A-19 | PROPOSED: Turning aging soon means 7 or fewer days to threshold (days 84-90); it is informational and actions remain aging-only. | AC-R2-17/18 |
+| A-20 | PROPOSED: Saved actions carry their logged time; calendar days are counted; actions older than 14 days get a check-progress flag (placeholder). | AC-R3-07/08 |
+| A-21 | PROPOSED: VIN is fake, opaque 17-character text for display and search only; it is not validated or decoded. | AC-R1-12/13 |
 
 ## Production Validation Needs
 
@@ -470,6 +735,12 @@ When implementing a WBS task:
 | E-07 | Full end-to-end suite | Unit, component and one manual check are proportionate. | Browser E2E tests in pipeline/test environment |
 | E-08 | Production telemetry platform | No production backend or host. | Frontend telemetry SDK and centralized logs/metrics/traces |
 | E-09 | Push or live real-time updates | Manual refresh is assessment interpretation. | Polling, WebSocket or server-sent events after target agreed |
+| E-10 | Bulk select and bulk apply of actions (CR-14) | Not in the brief; needs selection state, replace-existing warnings and partial-failure handling. Plan row 4.25 is Dropped (2.5 h). | Batch endpoint with per-vehicle results, replacement confirmation and audit entries |
+| E-11 | Undo of a saved action (CR-15) | Needs a timed toast and a clear-action path absent from InventoryService. Plan row 4.26 is Dropped (0.5 h). | Server-side action history with revert |
+| E-12 | CSV export and print layout (CR-18, CR-19) | Not required; exporting all filtered rows and print layout add implementation/test effort. Plan row 4.27 (CSV) is Dropped (0.5 h). | Server-generated filtered export with permission checks; reporting |
+| E-13 | Saved views, density toggle and remembered UI preferences (CR-13, CR-20, CR-21) | Only saved actions persist (C-23); these add a persistence surface to version and test. | Per-user preferences stored by the API |
+| E-14 | Tablet and mobile layouts (CR-26) | D20 limits responsive scope to laptop width; below 1340 px the table scrolls horizontally (C-27). | Responsive redesign after user research |
+| E-15 | Mockup-only elements (CR-24, CR-30) | Demo bar as product UI, notes cards, requirement-ID overlay and artificial 320 ms filter delay are not built. The delay conflicts with D19. | None |
 
 ---
 
@@ -486,16 +757,27 @@ When implementing a WBS task:
 | C-07 | Entry dates are offsets from R, including 89/90/91. | AC-R2-10 |
 | C-08 | Reference date is injected: today at runtime, fixed in tests. | AC-R2-11 |
 | C-09 | Aging and filter rules are pure functions in a non-React module. | R1 filter and R2 rule ACs |
-| C-10 | Filtering is client-side; server filtering/paging is future. | AC-R1-03 to AC-R1-08 |
-| C-11 | Logging wrapper, error boundary and service-call correlation ID are Should; design-only if dropped. | Optional |
+| C-10 | Filtering and paging run on the client over the full list returned by `getVehicles`. Server-side filtering and paging are documented as the future contract (E-05), not built. | AC-R1-03 to AC-R1-08 |
+| C-11 | Observability hooks: logging wrapper, error boundary and service-call correlation ID (Should; design-only if dropped). The correlation ID also appears in error messages (AC-R3-09, CR-29); if the hooks are dropped, the Ref text is dropped. | Optional |
 | C-12 | Mock contains in-stock vehicles only. | AC-R1-01 |
-| C-13 | Row fields include stock number, make, model, entry date, days, aging badge and current action. | AC-R1-02, AC-R2-12 |
-| C-14 | Summary shows total, aging count and aging-with-action. First item dropped if behind. | AC-R2-13, Should |
+| C-13 | Each list row shows stock number, VIN, make, model, entry date (DD-MMM-YYYY), days in stock, status (aging badge, due-soon tag or data-issue tag) and current action. | AC-R1-02, AC-R1-12, AC-R2-12/15 |
+| C-14 | Dashboard summary above the list shows total vehicles, aging count and aging vehicles with an action (Should; first item dropped if behind). Nice upgrade adds aging share and an actioned meter (CR-10). | AC-R2-13, Should |
 | C-15 | Only actions and notes are persisted, keyed by stable vehicle ID. | AC-R2-10, AC-R3-02 |
 | C-16 | Save is pessimistic; disabled saving state; inline Retry; previous action retained on failure. | AC-R3-01, AC-R3-05 |
 | C-17 | Model options depend on selected make; changing make clears invalid model. | AC-R1-05, AC-R1-10 |
-| C-18 | Display order is fixed by vehicle ID; sorting is out of scope. | AC-R1-11 |
+| C-18 | Without a selected sort, display order is fixed by vehicle ID. Optional column sorting (Nice, CR-05) overrides it for the session: unknown values last, ties by vehicle ID, not persisted. If dropped, sorting is out of scope. | AC-R1-11, AC-R1-19/20 |
 | C-19 | Impossible filter combinations are allowed and show no-results with Clear filters. | AC-R1-09, AC-R4-03 |
+| C-20 | Client-side pagination uses page sizes 10, 20, 50 and 100 (default 20), first/previous/numbered/next/last controls, resets to page 1 when a filter changes, clamps when results shrink, and does not persist page or page size. Go-to-page is not built. | AC-R1-01, AC-R1-16/17/18 |
+| C-21 | Core module adds pure functions for search over stock number, VIN, make and model; action filter; entry-date issue classification; pagination; and freshness level. If built: `sortRows` and early-warning rule. | AC-R1-03, AC-R1-13 to AC-R1-16, AC-R1-19, AC-R2-14/17, AC-R5-03 |
+| C-22 | One early-warning window constant (7 days, days 84-90) drives the summary card, `Due in N days` row tag and preset; the mockup's separate day-80 tag is not adopted. Nice. | AC-R2-17/18 |
+| C-23 | Only saved actions persist (C-15). Sort, page, page size, density and saved views are not persisted. | AC-R3-02 |
+| C-24 | Freshness uses named placeholder constants (15 and 60 minutes) and a pure level function. Header shows reference date, last-refreshed time and time ago; a warning banner with Refresh now appears from 60 minutes. Failed refresh keeps last data with a Retry banner; failed first load shows AC-R4-04. | AC-R4-06, AC-R5-03/04/05/06 |
+| C-25 | Missing, invalid and future entry dates show `Unknown` days and an issue tag, are not aging, and appear under a Data issues link and preset. Mock data contains one of each. | AC-R2-14/15/16 |
+| C-26 | Reviewer switches are in the mock layer: forced failure (C-05), empty inventory and data age, set by URL parameter or dev-only panel outside product UI. Sample actions are seeded only in demo mode; requirement-ID overlay is not built. PROPOSED. | AC-R4-05/07 |
+| C-27 | Visual layer uses CSS variables from the CR token table, Manrope / Inter / IBM Plex Mono, maximum width 1440 px, fixed table columns with minimum width 1200 px and horizontal scroll below 1340 px, and a blue focus ring. | None (no behavioural AC) |
+| C-28 | `currentAction = { action, note?, loggedAt }`; one current action per vehicle (A-06); fixed list of five placeholder values (Price Reduction Planned, Transfer to Another Site, Send to Auction, Promote in Campaign, Under Review). Partly answers OQ-07. | AC-R3-01/06/07 |
+| C-29 | Quick views (summary card, Data issues link, age-band click and preset views) set the complete filter set and replace current filters. Filters still combine with AND (A-13). | AC-R2-18/19 |
+| C-30 | Action entry stays in the dialog from wireframe 3.1. The mockup's inline editor row is not adopted; fields, validation and failure behavior are the same. | AC-R3-01/04/05 |
 
 ---
 
@@ -503,19 +785,24 @@ When implementing a WBS task:
 
 | ID | Area | Question / current assessment position |
 |---|---|---|
-| OQ-01 | Search | Should search include VIN or registration beyond stock number, make and model? |
+| OQ-01 | Search | Which fields does free-text search cover? The assessment now searches VIN as well; registration number and other identifiers remain open. |
 | OQ-02 | Filters | Are make/model multi-select? Assessment narrows models by make; multi-select remains open. |
 | OQ-03 | Inventory | Does all inventory include sold, reserved or in-transit? Mock uses in-stock only. |
 | OQ-04 | Timezone | Should dealership timezone replace browser local date in production? |
-| OQ-05 | Data quality | How should invalid/future entry dates appear to the manager? |
-| OQ-06 | Prominence | Is a badge enough, or is a summary/aging-first view required? |
-| OQ-07 | Action model | Are status and proposed action distinct, and what are fixed-list values? |
+| OQ-05 | Data quality | How should invalid/future entry dates appear to the manager? The assessment shows Unknown with an issue tag and a Data issues view; production handling remains open. |
+| OQ-06 | Prominence | Is a badge enough, or is a summary/aging-first view required? The CR adds an age profile and richer summary cards (both Nice); whether the badge alone is enough remains open. |
+| OQ-07 | Action model | Are status and proposed action distinct, and what are the fixed-list values? The mockup proposes five placeholders; sign-off remains open. |
 | OQ-08 | History | Does log mean an audit history or only current action? Assessment uses current action. |
 | OQ-09 | Note | Is there a maximum note length? |
 | OQ-10 | Freshness | Is manual refresh acceptable for real-time? |
-| OQ-11 | Freshness target | What maximum data age applies, and is polling or push required? |
-| OQ-12 | Scale | At what inventory size should filtering and paging move server-side? |
+| OQ-11 | Freshness target | What maximum data age applies, and is polling or push required? The 15- and 60-minute thresholds are placeholders. |
+| OQ-12 | Scale | At what inventory size should filtering and paging move server-side? Client-side paging up to 100 rows per page is adopted; the server threshold remains open. |
 | OQ-13 | Eligibility change | If corrected data makes a vehicle non-aging, should its saved action be kept, hidden or cleared? |
+| OQ-14 | CR | Who raised the change request, and is it a Keyloop requirement or an own design input? |
+| OQ-15 | Early warning | Is the early-warning window 7 days (days 84-90), or should the row tag start at day 80 as in the mockup? Should actions be allowed before day 91? |
+| OQ-16 | Bulk actions | Are bulk actions expected? If so, may bulk save replace existing actions, and what happens when some vehicles fail? |
+| OQ-17 | Action follow-up | What follow-up cadence do managers use for an action flagged after 14 days? |
+| OQ-18 | UI preferences | Should sort order, page size and display density be remembered per user? |
 
 Open questions do not block the assessment unless an active WBS task explicitly depends on an unanswered production decision.
 
@@ -523,22 +810,39 @@ Open questions do not block the assessment unless an active WBS task explicitly 
 
 # 6. Coverage
 
-| Requirement phrase | Acceptance criteria |
-|---|---|
-| Display a filterable list of all vehicles | AC-R1-01, AC-R1-02, AC-R1-11 |
-| Filter by make, model and age | AC-R1-04/05/06/08/09/10 |
-| Identify aging stock greater than 90 days | AC-R2-01 to AC-R2-11 |
-| Prominently display aging stock | AC-R2-12 Must; AC-R2-13 Should |
-| Log status or proposed action for aging vehicles | AC-R3-01, AC-R3-03, AC-R3-06; status details remain OQ-07 |
-| Persist action | AC-R3-02 |
-| Loading, empty, no-result and service-error states | AC-R4-01 to AC-R4-05 |
-| Real-time overview | AC-R5-01, AC-R5-02; production target remains OQ-11 |
+Coverage: brief phrase to acceptance criteria. Not covered: none.
 
-**Not covered:** None. The separate meaning of status remains partially open under OQ-07.
+Partial: “status” in R3 has no separate criterion until OQ-07 is answered (see A-07). Deferred or unbuilt CR items (E-10 to E-15) have no criteria. CR rows below are not part of the brief.
+
+| Requirement | Brief phrase / scope | Covering criteria |
+|---|---|---|
+| R1 | “Display a filterable list of all vehicles in a dealership's inventory” | AC-R1-01, AC-R1-02, AC-R1-11 |
+| R1 | “filter by make, model, age” | AC-R1-04, AC-R1-05, AC-R1-06, AC-R1-08, AC-R1-09, AC-R1-10 (scale threshold open: OQ-12) |
+| R2 | “Automatically identify ... aging stock (vehicles in inventory for >90 days)” | AC-R2-01 to AC-R2-11 |
+| R2 | “prominently display aging stock” | AC-R2-12 (Must), AC-R2-13 (Should) |
+| R3 | “log ... a status or proposed action for each aging vehicle” | AC-R3-01, AC-R3-03, AC-R3-06 (“status” open: OQ-07) |
+| R3 | “persist” | AC-R3-02 |
+| R4 | Loading, empty, no-result, service-error states; error can be forced (user scope) | AC-R4-01 to AC-R4-05 |
+| R5 | “real-time overview” | AC-R5-01, AC-R5-02 (freshness target open: OQ-11) |
+| R1 | CR (not in the brief): VIN, action filter, paging, sorting | AC-R1-12 to AC-R1-20 (Should; AC-R1-19/20 are Nice) |
+| R2 | CR (not in the brief): data issues, early warning, age profile | AC-R2-14 to AC-R2-19 (Should; AC-R2-17 to AC-R2-19 are Nice) |
+| R3 | CR (not in the brief): action logged time, stale flag, error reference | AC-R3-07 to AC-R3-09 (Should; AC-R3-08 is Nice) |
+| R4 | CR (not in the brief): refresh failure, reviewer switches | AC-R4-06/07 (Should) |
+| R5 | CR (not in the brief): freshness levels, time ago, stale warning, reference date | AC-R5-03 to AC-R5-06 (Should; freshness target remains open: OQ-11) |
+
+**Not covered:** None. “Status” remains partially open under OQ-07.
 
 ---
 
-# 7. Recommendations and Status
+# 7. Challenge and Recommendations
+
+| Question | Answer | Why | Note |
+|---|---|---|---|
+| Q1. Weakest assumption | A-08 ("real-time" = manual refresh) | It is the only assumption that narrows a word in the brief's task statement rather than filling a gap. With a single-user mock, a refresh returns the same data, so the demo cannot show freshness; a reviewer may ask why there is no automatic update. | Runner-up: A-07. The brief says "status or proposed action"; one list is defensible but may be read as skipping "status". The CR adds time-ago text, thresholds and a data-age switch (CR-17, D37), making A-08 visible without waiting. |
+| Q2. Exclusion at risk | E-05 (multi-dealership), combined with C-03/C-10 | “Build for the Future” names scalability. `getVehicles()` takes no dealership, filter or paging parameters, and filtering runs on the client. Excluding multi-dealership is fine; a contract that cannot add it without breaking callers looks like a scalability gap. | E-08 is second: if 4.10 is dropped, observability is design-only in the implemented layer. |
+| Q3. Scope risk from the CR | Adopting the mockup as specified (CR Impact, 32 items) | The mockup goes beyond the brief on about a dozen items. Adopted items add 13.75 h to a 33.25 h plan, leaving about 0.25 h spare Friday to Tuesday. D15 and D23 prioritize evaluation values that extras do not improve. | Mitigation: tiering (Should / Nice / Defer), drop CR Nice first at the Saturday gate, and keep deferred items as Dropped rows. Who raised the CR remains open (OQ-14). |
+
+Recommendations (not applied)
 
 | ID | Recommendation | Status |
 |---|---|---|
@@ -546,8 +850,13 @@ Open questions do not block the assessment unless an active WBS task explicitly 
 | REC-02 | State manual-refresh interpretation plainly in video. | Applied in v2 |
 | REC-03 | Include status-type and action-type values, or justify one list. | Partly applied in v3; values remain open |
 | REC-04 | Show future API with dealership ID, filters and paging. | Applied in v2 |
-| REC-05 | Add an optional query object to `getVehicles` now. | Not applied; would change Decision 3 |
-| REC-06 | Promote logging wrapper and error boundary from Should to Must. | Not applied |
+| REC-05 | Add an optional query object to `getVehicles` now. | Not applied: changes Decision 3. The CR keeps paging and sorting on the client (C-20); if applied, the query should carry page, page size and sort. |
+| REC-06 | Promote logging wrapper and error boundary from Should to Must. | Not applied: the mockup shows the correlation ID in error messages (AC-R3-09), which depends on WBS 4.10. |
+| REC-07 | Tier the CR (Adopt, Adopt gated, Defer, Not built) instead of building the mockup as specified. | Applied (v4): CR Impact sheet and Plan v5 CR Plan sheet |
+| REC-08 | Do not build the 320 ms `Updating results` overlay: it is artificial delay that contradicts D19 and slows tests. | Applied (v4): E-15 |
+| REC-09 | Use one early-warning window (7 days) instead of the mockup's two thresholds. | Applied (v4): C-22 (Nice) |
+| REC-10 | Do not persist sort, page, page size, density or views; only actions persist. | Applied (v4): C-23 |
+| REC-11 | If bulk apply is ever reinstated, add per-vehicle failure injection to the mock adapter and write partial-failure criteria first. | Not applied: bulk is deferred (E-10) |
 
 Copilot must not implement REC-05 or REC-06 unless the repository owner explicitly changes the baseline.
 
@@ -573,6 +882,7 @@ Copilot must not implement REC-05 or REC-06 unless the repository owner explicit
 - Non-repository tasks use relevant DoD items only.
 - Full AI-log entry is required when AI output is committed, rejected or corrected. Small syntax help may use a concise factual line.
 - Ownership review applies to changed source, tests and config; lockfiles and untouched scaffold are excluded.
+- CR Should criteria (24, including six Nice criteria) are verified only when built. WBS 5.6 covers pure-function Unit criteria; WBS 5.7 covers Component criteria. Automate AC-R1-17, AC-R1-18, AC-R3-09 and AC-R4-06; manually check other built Component criteria once. If a criterion moves to manual verification, update its Test level. Nice criteria AC-R1-19/20, AC-R2-17/18/19 and AC-R3-08 are checked only if their feature is built.
 
 ---
 
@@ -581,13 +891,13 @@ Copilot must not implement REC-05 or REC-06 unless the repository owner explicit
 | ID | Deliverable | Check |
 |---|---|---|
 | RL-01 | System design | `docs/system-design.md` contains diagram, roles, data flow, technologies/justifications, observability and GenAI design usage. |
-| RL-02 | System design | Assumptions, exclusions and open questions are included; unbuilt components are Future; future freshness and API contract are shown. |
+| RL-02 | System design | Assumptions, exclusions and open questions are included; unbuilt components are labelled Future; the diagram shows the future freshness path and future API contract with dealership ID, filters and paging. Deferred CR items (E-10 to E-13) are labelled Future. |
 | RL-03 | Working code | Fresh clone installs, runs, tests and builds using README only. |
-| RL-04 | Working code | All 36 Must ACs are verified: 19 Unit, 16 Component and 1 Manual. |
-| RL-05 | Working code | README covers overview, run/test/build, assumptions/interpretations, limitations and system-design link. |
+| RL-04 | Working code | Every Must criterion is verified: Unit and Component criteria by passing tests and the Manual criterion by one recorded check. CR Should criteria (24, including six Nice) are checked only for items built; criteria for dropped items are not applicable. |
+| RL-05 | Working code | README covers overview, run/test/build, an Assumptions and Interpretations section based on the README Draft, limitations and system-design link; it states reviewer switches and what is saved in the browser. |
 | RL-06 | Working code | AI narrative uses real log entries and at least one real corrected or rejected suggestion. |
 | RL-07 | Working code | Repository is accessible and contains no secrets. |
-| RL-08 | Video | Required flow is shown and manual-refresh interpretation is stated. |
+| RL-08 | Video | Within required length; shows scenario, design, filters, aging badge, saving an action, persistence after reload and AI collaboration; states that real-time means last-refreshed time plus manual refresh. If built, also shows pagination, freshness and a data-issue row. |
 | RL-09 | Video | Link opens in private browser without access request. |
 | RL-10 | All | Submission email with repository, design and video links is sent before the confirmed deadline. |
 
@@ -598,13 +908,20 @@ Copilot must not implement REC-05 or REC-06 unless the repository owner explicit
 Use these statements only if the delivered build still matches them:
 
 1. **Log an action:** Logging means saving the current action for an aging vehicle. A new action replaces the old one; history is future scope.
-2. **Status or proposed action:** One `Action` field covers both, selected from a fixed list with an optional note.
-3. **Real-time overview:** The dashboard shows last-refreshed time and a Refresh button. It does not push live updates.
+2. **Status or proposed action:** One `Action` field covers both. The manager selects from the five placeholder values (Price Reduction Planned, Transfer to Another Site, Send to Auction, Promote in Campaign, Under Review) and may add an optional note. Values still need sign-off (OQ-07).
+3. **Real-time overview:** The dashboard shows last-refreshed time and a Refresh button; it does not push live updates. The header also shows elapsed time, amber after 15 minutes and warning after 60; both thresholds are placeholders pending an agreed freshness target (OQ-11).
 4. **Filter combination:** Filters combine with AND.
 5. **Aging-only plus age band:** Both may be active; impossible combinations show no results with Clear filters.
 6. **Make and model:** Models narrow to the selected make; invalid selected model is cleared when make changes.
-7. **Display order:** Vehicles use fixed vehicle-ID order; user sorting is out of scope.
+7. **Display order:** Without a selected sort, vehicles use fixed vehicle-ID order. If column sorting is built, it applies for the current session, unknown values sort last, ties use vehicle ID, and a third click restores vehicle-ID order. Sorting is not persisted; if dropped, sorting remains out of scope.
 8. **No-longer-aging action:** Production behavior remains open if corrected source data removes aging eligibility.
+9. **Search:** Search matches stock number, VIN, make and model, case-insensitive. Other identifiers, such as registration number, are not searched.
+10. **Paging:** The list shows 20 vehicles per page by default; page size can be changed to 10, 50 or 100. A filter change returns to page 1. Paging runs in the browser over about 200 demonstration vehicles; server-side paging is future scope, not a performance claim.
+11. **Data quality:** Missing, invalid or future entry dates show `Unknown` and an issue tag, are not counted as aging, and can be listed with the Data issues link. Demo data contains three such vehicles.
+12. **Early warning (if built):** A card and tag show vehicles that will pass 90 days within 7 days (days 84-90). This is informational; actions remain limited to aging vehicles.
+13. **Reviewer switches:** Forced failure, empty inventory and old data age can be switched on without changing code. Sample actions are loaded only in demo mode; the demo bar is not product UI.
+14. **Saved data:** Only the saved action and note are stored in the browser. Sort order, page size, filters and display density are not remembered after reload.
+15. **Future improvements:** Bulk actions, undo, CSV export, print layout and saved views were considered and left out; they are listed as future scope.
 
 ---
 
@@ -622,3 +939,75 @@ Before implementing a WBS task, GitHub Copilot must:
 8. Avoid turning open questions or unapplied recommendations into features.
 9. Run the defined verification.
 10. Stop before staging, committing or pushing.
+
+---
+
+# 12. Change Request Impact (v4)
+
+The following triage records the 32 change-request items against Baseline v3. Dispositions remain proposals pending owner confirmation (OQ-14). Plan tiers are Must, Should and Nice; acceptance-criteria priority uses Must and Should, so Nice plan items are Should in the AC register. Dropped rows refer to Plan v5.
+
+| CR ID | Change | Disposition / tier | Plan WBS | Requirement links |
+|---|---|---|---|---|
+| CR-01 | VIN column, VIN search and match highlight | Adopt / Should | 4.12, 4.13, 4.16 | AC-R1-12/13; A-14/21; OQ-01; C-13/21 |
+| CR-02 | Action filter: Any / No action yet / Has an action | Adopt / Should | 4.12, 4.17 | AC-R1-14/15; A-17; C-21 |
+| CR-03 | Client pagination and page-size controls | Adopt with changes / Should | 4.12, 4.18 | AC-R1-01/16/17/18; A-11; C-20/23; OQ-12 |
+| CR-04 | Result count and removable filter chips | Adopt / Should | 4.17 | AC-R1-17 |
+| CR-05 | Eight-column sorting, three-state, unknown-last, ID tie-break | Adopt, gated / Nice | 4.24 | AC-R1-11/19/20; C-18/21; D32 |
+| CR-06 | Missing/invalid/future date issue treatment and Data issues view | Adopt / Should | 4.12, 4.13, 4.16 | AC-R2-14/15/16; A-12; OQ-05; C-25 |
+| CR-07 | Action logged time | Adopt / Should | 4.13, 4.19 | AC-R3-07; A-20; C-28 |
+| CR-08 | Stale-action flag after 14 days | Adopt, gated / Nice | 4.21 | AC-R3-08; A-20; OQ-17 |
+| CR-09 | One early-warning window and due-soon tag | Adopt with change / Nice | 4.21 | AC-R2-17/18; A-19; C-22/29; OQ-15 |
+| CR-10 | Summary cards: aging share and actioned meter | Adopt, gated / Nice | 4.22 | AC-R2-13; C-14 |
+| CR-11 | Age-profile band bar with click-to-filter | Adopt, gated / Nice | 4.22 | AC-R2-19; A-04; OQ-06; C-29 |
+| CR-12 | Eight preset views | Adopt, gated / Nice | 4.23 | C-29 |
+| CR-13 | Saved views | Defer | - | E-13 |
+| CR-14 | Bulk select and bulk action | Defer | 4.25 (Dropped) | E-10; OQ-16; D35 |
+| CR-15 | Undo toast | Defer | 4.26 (Dropped) | E-11; D35 |
+| CR-16 | Action-saved toast | Adopt / Should | 4.19 | AC-R3-01 |
+| CR-17 | Freshness indicators and refresh-failure behavior | Adopt / Should | 4.12, 4.20 | AC-R4-06, AC-R5-03 to AC-R5-06; A-18; OQ-11; C-24; D37 |
+| CR-18 | CSV export of filtered rows | Defer | 4.27 (Dropped) | E-12; D36 |
+| CR-19 | Print layout | Defer | - | E-12; D36 |
+| CR-20 | Row-density toggle | Not built / Excluded | - | E-13; D36 |
+| CR-21 | Remembered UI preferences | Adopt with change / Decision | - | C-23; E-13; OQ-18; D34 |
+| CR-22 | Reviewer switches for failure, empty data and data age | Adopt as switches only / Should | 4.14 | AC-R4-05/07; C-05/26; D39 |
+| CR-23 | Sample actions seeded on first visit | Adopt in demo mode only / Should | 4.14 | C-26; D39 |
+| CR-24 | 320 ms “Updating results” overlay | Not built / Excluded | - | E-15; D36 |
+| CR-25 | Design tokens, typography and 1440 px maximum width | Adopt / Should | 4.15 | C-27; D40 |
+| CR-26 | Tablet and mobile breakpoints | Not built / Excluded | - | E-14; C-27 |
+| CR-27 | Accessibility details | Adopt within build tasks / Should | 4.15 to 4.24, 5.5 | AC-R2-12, AC-R1-20 |
+| CR-28 | Five placeholder action values | Adopt as placeholders / Should | 3.5, 4.13 | C-28; A-07; OQ-07 |
+| CR-29 | Correlation ID in error messages | Adopt, requires 4.10 / Should | 4.19 | AC-R3-09; C-11; REC-06 |
+| CR-30 | Notes cards and requirement-ID overlay | Not built / Excluded | - | E-15 |
+| CR-31 | Inline action editor instead of dialog | Not adopted; keep dialog / Excluded | - | C-30 |
+| CR-32 | Entry-date format DD-MMM-YYYY | Adopt / Should | 4.16 | C-13 |
+
+## Conflicts and inconsistencies recorded in the CR
+
+| # | Finding | v4 resolution | Owner decision |
+|---|---|---|---|
+| 1 | Pagination conflicts with AC-R1-01 expecting all N rows. | Limit AC-R1-01 to N not larger than page size; AC-R1-17 covers 200 rows. | No |
+| 2 | Sorting conflicts with the prior “sorting out of scope” wording. | Sorting remains gated Nice; C-18 is revised and README wording is conditional. | No |
+| 3 | Mockup uses different early-warning thresholds for card and row. | Use one 7-day window (C-22, A-19). | Yes: OQ-15 |
+| 4 | Mockup adds persistence keys beyond actions. | Persist only actions (C-23). | Yes: D34 |
+| 5 | Sample actions seeded on first visit break fresh-state behavior. | Seed only in demo mode (C-26). | No |
+| 6 | All-or-nothing forced failure cannot test partial bulk failures. | Defer bulk (E-10); REC-11 records the reinstatement precondition. | No |
+| 7 | Inline editor row conflicts with dialog in wireframe 3.1 and WBS 4.7. | Keep the dialog (C-30). | Yes: CR-31 |
+| 8 | Refresh-failure behavior was left open, while first-load error expects no rows. | Separate first-load behavior (AC-R4-04) from refresh failure (AC-R4-06). | No |
+| 9 | Artificial 320 ms filter delay conflicts with D19 and slows tests. | Do not build it (E-15, REC-08). | No |
+| 10 | Mockup focus-ring cyan conflicts with README blue token. | Follow README token table (C-27). | No |
+| 11 | Unused mockup gauge CSS has no rendered counterpart. | Do not copy; review in 4.15 and 5.4. | No |
+| 12 | Action values are placeholders and “Under Review” is status-like. | Use five placeholder values; keep OQ-07 open (C-28). | Yes: OQ-07 |
+| 13 | Pixel-accurate fidelity request conflicts with time-boxed plan and deferred mockup sections. | Reuse tokens/CSS, rebuild structure, defer listed sections (D40). | Yes: OQ-14 |
+| 14 | Quick views replace existing filters rather than add to them. | Document replacement behavior (C-29, A-13). | No |
+| 15 | Mockup provenance must not be confused with actual AI collaboration evidence. | Log the mockup/tool factually under Plan 2.4; do not invent examples (D16). | Yes: tool name |
+
+---
+
+# 13. Change Log
+
+## v4 — Change request triage
+
+- Added 24 Should acceptance criteria, A-17 to A-21, OQ-14 to OQ-18, E-10 to E-15 and C-20 to C-30; revised linked v3 criteria and register wording as listed in the v4 Consistency Log.
+- Added the 32-item CR Impact triage and 15 recorded conflicts; added Q3 and REC-07 to REC-11.
+- Updated Coverage, Release DoD RL-02/RL-04/RL-05/RL-08, the CR Should realism guidance and README interpretation items #2/#3/#7/#9-#15.
+- Kept Task DoD T-01 to T-08 unchanged. The current baseline has no DoD Example section; no example content was synthesized.

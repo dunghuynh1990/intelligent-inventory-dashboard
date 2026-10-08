@@ -4,9 +4,9 @@
 
 - **Scenario:** Scenario B: Intelligent Inventory Dashboard
 - **Implementation:** React + TypeScript + Vite frontend with mocked backend
-- **Plan version:** v4
-- **Planned effort:** 33.25 hours
-- **Source:** `Keyloop_Assignment_WBS_and_Submission_Checklist_v4.xlsx`
+- **Plan version:** v5
+- **Planned effort:** 47.00 hours, excluding Dropped tasks (33.25 baseline + 13.75 CR)
+- **Source:** `docs/cr/plan-v5-export.md` (export of Plan v5 workbook)
 - **Purpose:** Implementation-facing WBS catalogue for GitHub Copilot in VS Code
 - **Planning authority:** The Excel workbook remains authoritative for effort, schedule and reporting. This Markdown file is the repository execution catalogue.
 
@@ -16,16 +16,20 @@ Requirements and scope -> initial system design -> setup and test tooling -> pur
 
 ## Global Stop Rules
 
-1. If the Core UX gate fails, drop Should and Nice build items first, including WBS 4.6 and 4.10, and do not add sorting.
+1. If behind at the Core UX gate, drop CR Nice items first in this order: 4.24, 4.23, 4.22, 4.21; then CR Should items 4.18, 4.17 and 4.19. Keep 4.20. Apply the existing Core UX fallback for baseline Should work only after this CR order.
 2. If WBS 4.10 is dropped, state in the system design and README that observability is design-only.
 3. Add no new features after the Quality gate.
 4. Documentation and submission work must not introduce new application scope.
 5. GitHub Copilot may edit task-scoped files and run verification, but must not stage, commit or push.
 6. The repository owner reviews the complete diff, approves the AI log, commits and pushes manually.
+7. Keep 4.25-4.27 Dropped in the current plan; do not reinstate them without meeting the task-level CR Plan section 3 conditions and owner approval.
+8. WBS 5.6 and 5.7 tests are written before the UI tasks they cover.
+9. Do not start WBS 4.21-4.24 before the Core UX gate passes.
 
 ## Status Values
 
 - `Not Started`
+- `In Progress`
 - `Active`
 - `Complete`
 - `Blocked`
@@ -340,6 +344,7 @@ Establish a controlled GitHub Copilot workflow with repository context, WBS-leve
 - `docs/wbs.md` is the WBS execution catalogue.
 - `docs/active-task.md` is generated from a selected WBS item.
 - AI log records task, AI output, decision, verification and correction.
+- CR handoff records that the Vehicle Inventory Mockup HTML and README were generated design inputs; tool name is confirmed rather than guessed.
 - First genuine entry is written.
 - Every AI claim intended for the README or video is supported by the log.
 - Corrections and rejections are recorded when they happen.
@@ -681,6 +686,7 @@ Review only, without adding unrelated features:
 - Keyboard access
 - Visible focus
 - Common laptop-width layout
+- CR: review `aria-sort`, `aria-pressed`, `aria-live` for result count/toast, and focus rings for built items.
 
 ---
 
@@ -703,6 +709,10 @@ The pure filter function is tested directly for:
 - Combined filters
 - Clear filters
 - Behavior against generated data
+
+### Notes
+
+CR: VIN-search and action-filter tests are in WBS 5.6. Keep this task on baseline filters.
 
 ---
 
@@ -741,6 +751,7 @@ Component or workflow tests cover:
 - Production build passes.
 - Every file is walked through.
 - Anything that cannot be explained is rewritten or noted in the AI log.
+- Code and CSS lifted from the mockup are reviewed and explainable; unused rules are removed.
 
 ### Stop Rule
 
@@ -764,6 +775,7 @@ If this overruns, drop WBS 5.5 before weakening WBS 5.4.
 - Final document is at `docs/system-design.md`.
 - README links to the system design.
 - GenAI design usage is explained using factual evidence.
+- CR: reflect D30-D40, including client-side paging (C-20), freshness constants (C-24), one early-warning window (C-22), and label deferred CR items E-10 to E-15 as Future.
 
 ---
 
@@ -786,6 +798,9 @@ README includes:
 - Build instructions
 - Assumptions
 - Limitations
+- "Assumptions and Interpretations" based on README Draft v4 items #1-#15
+- Deferred CR items listed under future improvements
+- Reviewer switches and browser-persisted data described
 - AI Collaboration Narrative using real AI-log cases only
 - System-design link
 - Screenshot
@@ -847,6 +862,7 @@ A 5-10 minute outline covers:
 - AI collaboration story
 - Application demo
 - Lessons and challenges
+- If built, pagination, freshness/time ago and data-issue rows; state the A-08 real-time interpretation
 
 ---
 
@@ -914,6 +930,659 @@ A 5-10 minute outline covers:
 - Submission links are tested.
 - Submission email is sent by the internal target.
 - Submission remains before the confirmed external deadline.
+
+---
+
+## WBS 1.5: Triage CR and Update Planning Baseline
+
+- **Workstream:** Requirements & Scope
+- **Priority:** Must
+- **Status:** In Progress
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR triage
+
+### Objective
+
+Triage every change-request item, align Requirements Baseline v4 and Plan v5, and list owner decisions.
+
+### In Scope
+
+- Update the authorized planning baseline, WBS, decision register, traceability and active-task snapshot.
+- Record CR dispositions and unresolved owner decisions without resolving open questions.
+
+### Exit Criteria
+
+- Every CR item has a disposition (Adopt, Adopt gated, Defer or Not built).
+- Requirements Baseline v4 and Plan v5 are aligned.
+- Open decisions are listed for the owner.
+
+### Linked Acceptance Criteria
+
+None; this is a planning-baseline task.
+
+### Notes
+
+Mark Complete only after the owner confirms the dispositions. Record who raised the CR (OQ-14), which determines whether it is a requirement or own design input.
+
+## WBS 3.5: Update Data Model and Component Structure for Adopted CR Items
+
+- **Workstream:** UX & Design
+- **Priority:** Must
+- **Status:** Not Started
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR-01, CR-06, CR-07, CR-28
+
+### Objective
+
+Update data-model and component-structure documentation for adopted CR items.
+
+### In Scope
+
+- Vehicle type adds VIN; current action adds `loggedAt`.
+- Filter state adds action; paging and sort state are defined.
+- Extend the component list with summary cards, pager and freshness indicator.
+- Keep the InventoryService contract unchanged (`getVehicles`, `updateVehicleAction`).
+
+### Exit Criteria
+
+- Required data and UI state additions are documented.
+- Component structure reflects the adopted CR surfaces.
+- InventoryService signatures remain unchanged.
+
+### Linked Acceptance Criteria
+
+AC-R1-12/13, AC-R1-14/15, AC-R2-14/15/16, AC-R3-07.
+
+### Notes
+
+Delta to completed WBS 3.2 and 3.3. Skip items dropped at the gate.
+
+## WBS 4.12: Extend Core Module for CR
+
+- **Workstream:** Core Logic
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 1.00 hour
+- **CR Ref:** CR-01, CR-02, CR-03, CR-06, CR-17
+
+### Objective
+
+Add framework-independent core functions needed by adopted CR behavior.
+
+### In Scope
+
+- Search stock number, VIN, make and model; action filtering; entry-date issue classification; pagination with slicing and clamping; freshness level; summary data-issue count.
+- Inject reference date and clock. Early-warning and sort functions belong to WBS 4.21 and 4.24.
+
+### Exit Criteria
+
+- Core functions are pure and contain no React imports.
+- Search, action filter, date-issue classification, pagination, freshness and issue summary are implemented.
+- Reference date and clock are injected.
+
+### Linked Acceptance Criteria
+
+AC-R1-13/14/15/16, AC-R2-14/16, AC-R5-03.
+
+### Notes
+
+Delta to completed WBS 4.3 and 4.5. Unit tests are WBS 5.6.
+
+## WBS 4.13: Extend Mock Adapter for CR
+
+- **Workstream:** Data & Service
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR-01, CR-06, CR-07, CR-28
+
+### Objective
+
+Extend generated mock vehicles and saved actions for CR data.
+
+### In Scope
+
+- Generate fake 17-character VINs using a fixed seed and excluding I, O and Q.
+- Include three bad-data vehicles: missing, invalid and future entry dates.
+- Keep 89/90/91-day records unchanged.
+- Store `loggedAt` with saved actions; do not change InventoryService signatures.
+
+### Exit Criteria
+
+- Generated vehicles meet the VIN and bad-date requirements.
+- Existing aging boundary records remain unchanged.
+- Saved actions include `loggedAt`.
+- InventoryService signatures remain unchanged.
+
+### Linked Acceptance Criteria
+
+AC-R1-12, AC-R2-14/15/16, AC-R3-07.
+
+### Notes
+
+Delta to completed WBS 4.2 and 4.11. C-28 action values are placeholders; OQ-07 remains open.
+
+## WBS 4.14: Add Reviewer Switches and Demo Mode
+
+- **Workstream:** Data & Service
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR-22, CR-23
+
+### Objective
+
+Enable deterministic reviewer scenarios without adding a demo bar to product UI.
+
+### In Scope
+
+- Switch forced failure, empty inventory and data age without code changes.
+- Seed sample actions only in demo mode; keep tests unseeded.
+- Do not build the requirement-ID overlay.
+
+### Exit Criteria
+
+- Scenarios can be switched by URL parameters or a dev-only panel outside product UI.
+- Tests run without sample-action seeding.
+- README describes the switches.
+
+### Linked Acceptance Criteria
+
+AC-R4-05/07.
+
+### Notes
+
+Extends forced failure from completed WBS 4.2 (C-05).
+
+## WBS 4.15: Apply CR Design Tokens and Typography
+
+- **Workstream:** UI Implementation
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR-25, CR-27
+
+### Objective
+
+Apply the agreed CR visual tokens, typography and accessibility details.
+
+### In Scope
+
+- CSS variables for colors, radius and shadow; Manrope, Inter and IBM Plex Mono.
+- Reuse suitable header, card and table styles.
+- Use the blue focus ring; do not copy demo bar, notes cards or unused `.gauge` CSS.
+
+### Exit Criteria
+
+- CR tokens, typography and layout styles are applied.
+- Mockup CSS retained is reviewed and explainable.
+- Accessibility details are applied to built CR items.
+
+### Linked Acceptance Criteria
+
+AC-R2-12, AC-R1-20.
+
+### Notes
+
+Delta to WBS 4.1. Review lifted CSS during WBS 5.4.
+
+## WBS 4.16: Show VIN, Entry-Date Format and Data-Issue Rows
+
+- **Workstream:** UI Implementation
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR-01, CR-06, CR-27, CR-32
+
+### Objective
+
+Display CR vehicle details and data-quality states in the inventory list.
+
+### In Scope
+
+- VIN column in monospace with searched-match highlight.
+- Entry date in DD-MMM-YYYY format.
+- Unknown days and issue tag for missing, invalid or future dates.
+- Data issues link filters the list; aging-badge text remains unchanged.
+
+### Exit Criteria
+
+- Required row details and data-issue states are visible.
+- Data issues link applies its list filter.
+- Existing aging badge text is unchanged.
+
+### Linked Acceptance Criteria
+
+AC-R1-12, AC-R2-15.
+
+### Notes
+
+Delta to completed WBS 4.4.
+
+## WBS 4.17: Add Action Filter and Filter Chips
+
+- **Workstream:** UI Implementation
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR-02, CR-04
+
+### Objective
+
+Expose action filtering and active-filter feedback.
+
+### In Scope
+
+- Any / No action yet / Has an action filter.
+- Removable chip for each active filter.
+- “Showing X-Y of N” count and unchanged Clear filters behavior.
+
+### Exit Criteria
+
+- Action filter, chips, result count and Clear filters work together.
+
+### Linked Acceptance Criteria
+
+AC-R1-14/15/17.
+
+### Notes
+
+Delta to completed WBS 4.5. Pure filter logic is in 4.12.
+
+## WBS 4.18: Build Pagination
+
+- **Workstream:** UI Implementation
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 1.25 hours
+- **CR Ref:** CR-03
+
+### Objective
+
+Build client-side pagination for the demonstration inventory.
+
+### In Scope
+
+- Page sizes 10/20/50/100 (default 20).
+- First, previous, numbered, next and last controls with ellipsis.
+- Reset page to 1 on filter change; clamp page when results shrink.
+- Do not persist page or page size; do not build go-to-page.
+
+### Exit Criteria
+
+- Pagination controls and page sizes behave as specified.
+- Filter changes reset to first page and shrinking results clamp the page.
+- Page state is not persisted.
+
+### Linked Acceptance Criteria
+
+AC-R1-01/16/17/18.
+
+### Notes
+
+Revises D19. If dropped at the Core UX gate, AC-R1-01 holds as written (all rows shown).
+
+## WBS 4.19: Show Action Logged Time, Save Feedback and Error Reference
+
+- **Workstream:** UI Implementation
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR-07, CR-16, CR-29
+
+### Objective
+
+Show action age, save confirmation and correlated failure reference.
+
+### In Scope
+
+- Show Logged today/yesterday/N days ago and No action yet for aging rows.
+- Show Action saved toast without Undo.
+- Show correlation ID in failed-save message; depends on WBS 4.10.
+- Keep action entry in the dialog (C-30).
+
+### Exit Criteria
+
+- Action age, success feedback and error reference are presented as specified.
+
+### Linked Acceptance Criteria
+
+AC-R3-01/07/09.
+
+### Notes
+
+Delta to completed WBS 4.7. If 4.10 is dropped, omit Ref text and AC-R3-09 does not apply.
+
+## WBS 4.20: Build Freshness Indicators
+
+- **Workstream:** UI Implementation
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 1.00 hour
+- **CR Ref:** CR-17
+
+### Objective
+
+Make data freshness and refresh outcomes visible.
+
+### In Scope
+
+- Header shows reference date, last-refreshed time and time ago.
+- Normal under 15 minutes, amber from 15, red from 60; warning with Refresh now from 60.
+- Refresh failure preserves data and shows Retry; first-load failure stays AC-R4-04.
+
+### Exit Criteria
+
+- Header thresholds and stale-data warning match the named placeholder constants.
+- Failed refresh preserves last data and provides Retry.
+- First-load error remains distinct.
+
+### Linked Acceptance Criteria
+
+AC-R4-06, AC-R5-03/04/05/06.
+
+### Notes
+
+Delta to WBS 4.4. Thresholds are named placeholders pending OQ-11.
+
+## WBS 4.21: Build Attention Cues
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR-08, CR-09
+
+### Objective
+
+Add gated cues for vehicles nearing aging and stale actions.
+
+### In Scope
+
+- “Turning aging in 7 days” card for days 84-90 toggles a list filter.
+- “Due in N days” tag uses the same window.
+- Flag actions older than 14 days; actions remain aging-only.
+- Unit test early-warning rule.
+
+### Exit Criteria
+
+- One threshold drives card and tag.
+- Stale-action flag follows the 14-day placeholder.
+- Early-warning boundary test exists.
+
+### Linked Acceptance Criteria
+
+AC-R2-17/18, AC-R3-08.
+
+### Notes
+
+Do not start before Core UX gate passes. Drop if behind; one threshold only (D33).
+
+## WBS 4.22: Build Age Profile and Summary Upgrade
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Not Started
+- **Planned effort:** 1.00 hour
+- **CR Ref:** CR-10, CR-11
+
+### Objective
+
+Add the gated age-profile bar and richer summary.
+
+### In Scope
+
+- Band bar with counts and share; clicking a band toggles age-band filter.
+- Show 90-day threshold marker.
+- Summary adds aging share and actioned meter.
+
+### Exit Criteria
+
+- Age-profile counts, shares, marker and filter interaction work.
+- Summary cards show the additional values.
+
+### Linked Acceptance Criteria
+
+AC-R2-13/19.
+
+### Notes
+
+Do not start before Core UX gate passes. Delta to WBS 4.6; drop if behind.
+
+## WBS 4.23: Build Preset Views
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR-12
+
+### Objective
+
+Add gated preset filters over the full filter set.
+
+### In Scope
+
+- All vehicles, Needs action, Aging stock, Action planned, Turning aging this week, Approaching 90 days, Data issues and New arrivals.
+- Each preset applies all filters and shows a count; show Custom filters when none match.
+- Do not build saved views.
+
+### Exit Criteria
+
+- Presets apply complete filter sets and display counts.
+- Saved views remain unbuilt.
+
+### Linked Acceptance Criteria
+
+AC-R2-18/19; C-29.
+
+### Notes
+
+Do not start before Core UX gate passes. Preset for Turning aging depends on WBS 4.21; drop if behind.
+
+## WBS 4.24: Build Column Sorting
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Not Started
+- **Planned effort:** 1.25 hours
+- **CR Ref:** CR-05
+
+### Objective
+
+Add gated three-state sorting to inventory columns.
+
+### In Scope
+
+- Pure `sortRows`; sortable headers cycle descending, ascending and vehicle-ID order.
+- Days in stock and Status start descending; unknown values last; ties by vehicle ID.
+- Set `aria-sort`; do not persist sorting; unit-test `sortRows`.
+
+### Exit Criteria
+
+- Sorting order and unknown/tie behavior match the rule.
+- Sort state is session-only and accessible.
+- Core sorting unit tests pass.
+
+### Linked Acceptance Criteria
+
+AC-R1-11/19/20.
+
+### Notes
+
+Do not start before Core UX gate passes. First CR item to drop if behind.
+
+## WBS 4.25: Bulk Select and Bulk Apply of Actions
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Dropped
+- **Planned effort:** 2.50 hours
+- **CR Ref:** CR-14
+
+### Objective
+
+Deferred scope only; do not implement under this plan.
+
+### Scope
+
+Row selection on aging rows, select-page and select-all-in-list, replace-existing warning, partial-failure handling and per-vehicle failure injection.
+
+### Exit Criteria
+
+- Remains Dropped. Reinstate only if the Core UX gate passes, all CR Should items are complete and at least 2.5 hours remain on Saturday; OQ-16 is answered, per-vehicle failure injection exists, and new criteria cover selection, replacement warning and partial failure.
+
+### Linked Acceptance Criteria
+
+None; deferred pending OQ-16 and new criteria.
+
+### Notes
+
+Do not reinstate; CR-14 deferred (E-10).
+
+## WBS 4.26: Undo Toast for a Saved Action
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Dropped
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR-15
+
+### Objective
+
+Deferred scope only; do not implement under this plan.
+
+### Scope
+
+An 8-second Undo would restore the previous action and needs a clear-action path in InventoryService.
+
+### Exit Criteria
+
+- Remains Dropped.
+
+### Linked Acceptance Criteria
+
+None; deferred (E-11).
+
+### Notes
+
+Undo changes the service contract (`updateVehicleAction` accepting null). Reinstate only if bulk is not reinstated and 0.5 hour remains; first decide how to restore a prior action.
+
+## WBS 4.27: Export Filtered List as CSV
+
+- **Workstream:** UI Implementation
+- **Priority:** Nice
+- **Status:** Dropped
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR-18
+
+### Objective
+
+Deferred scope only; do not implement under this plan.
+
+### Scope
+
+Export all filtered rows across pages with the 11 README columns.
+
+### Exit Criteria
+
+- Remains Dropped. Reinstate only on Saturday, after the Core UX gate, with 0.5 hour spare; features freeze from Sunday.
+
+### Linked Acceptance Criteria
+
+None; deferred (E-12).
+
+### Notes
+
+Deferred (E-12). If reinstated, use the README column list and add one criterion for exported row count.
+
+## WBS 5.6: CR Core Unit Tests
+
+- **Workstream:** Testing
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR-01, CR-02, CR-03, CR-06, CR-17
+
+### Objective
+
+Test pure CR core functions against fixed inputs and time.
+
+### In Scope
+
+Tests cover AC-R1-13 to AC-R1-16, AC-R2-14, AC-R2-16 and AC-R5-03; deliberately break each rule to show its test fails; record AI-log entry.
+
+### Exit Criteria
+
+- Fixed-reference-date tests cover the linked criteria.
+- Deliberate-failure evidence and factual AI-log entry are recorded.
+
+### Linked Acceptance Criteria
+
+AC-R1-13/14/15/16, AC-R2-14/16, AC-R5-03.
+
+### Notes
+
+Share one test file with WBS 5.1 and 5.2. Write these tests before the UI tasks they cover.
+
+## WBS 5.7: CR Component Tests
+
+- **Workstream:** Testing
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.75 hour
+- **CR Ref:** CR Should criteria
+
+### Objective
+
+Verify observable CR component behavior.
+
+### In Scope
+
+Component tests cover AC-R1-12/17/18, AC-R2-15, AC-R3-07/09, AC-R4-06 and AC-R5-04/05/06. Test Nice criteria alongside their task or check them manually once; change Test level when moving a criterion to manual.
+
+### Exit Criteria
+
+- Listed component criteria have test coverage.
+- Built Nice criteria are tested or manually checked once.
+- Test-level metadata is updated for any manual check.
+
+### Linked Acceptance Criteria
+
+AC-R1-12/17/18, AC-R2-15, AC-R3-07/09, AC-R4-06, AC-R5-04/05/06.
+
+### Notes
+
+Ten component criteria in 0.75 hour is tight; follow DoD realism guidance. Write tests before the UI tasks they cover.
+
+## WBS 7.4: Draft README Wording for CR Decisions
+
+- **Workstream:** README & Repo
+- **Priority:** Should
+- **Status:** Not Started
+- **Planned effort:** 0.50 hour
+- **CR Ref:** CR docs
+
+### Objective
+
+Prepare README wording for CR assumptions, reviewer controls and deferred items.
+
+### In Scope
+
+Check README Draft v4 items #1-#15 against the build, list deferred CR items as future improvements and describe reviewer switches.
+
+### Exit Criteria
+
+- Draft text matches the delivered build.
+- Deferred items and reviewer switches are described accurately.
+
+### Linked Acceptance Criteria
+
+None; documentation task.
+
+### Notes
+
+Prepare wording early so WBS 7.1 only needs to re-check it against the delivered build.
 
 ---
 

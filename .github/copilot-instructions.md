@@ -63,6 +63,7 @@ Also read relevant existing source code, configuration and tests.
 - `docs/traceability.md` maps WBS tasks to acceptance criteria and verification.
 - `docs/ai/collaboration-log.md` is historical evidence and must not be treated as a requirement.
 - Files under `docs/templates/` are reference templates and must not be executed.
+- Files under `docs/cr/` are temporary CR source exports used only by WBS 1.5. They are not authority.
 
 ## Decision and Requirement Status
 
@@ -85,6 +86,8 @@ Do not implement items marked as:
 - Dropped.
 
 In particular, do not implement unapplied recommendations such as REC-05 or REC-06 unless the repository owner explicitly changes the baseline.
+
+CR decisions D30-D40 count as Selected only after the repository owner sets them to Selected in the decision register (WBS 1.5). Until then, do not implement them.
 
 ## WBS Execution Authority
 
@@ -138,8 +141,8 @@ Add this notice at the top:
 - Approximately 200 deterministic vehicles
 - Mock backend behind `InventoryService`
 - Pure TypeScript aging and filter rules outside React
-- Local persistence for the current proposed action only
-- Manual refresh and visible last-refreshed time
+- Local persistence for the current proposed action only (action, note and logged time)
+- Manual refresh, visible last-refreshed time, time-ago and freshness level
 
 Do not add these unless the baseline is explicitly changed:
 
@@ -162,15 +165,16 @@ Do not add these unless the baseline is explicitly changed:
 - Invalid or future entry dates produce unknown age and are not aging.
 - Age bands are `0-30`, `31-60`, `61-90` and `>90`.
 - Filters combine with AND.
-- Search covers stock number, make and model, case-insensitive.
+- Search covers stock number, VIN, make and model, case-insensitive.
 - Model options depend on the selected make.
-- Vehicles use stable ascending vehicle-ID order; user sorting is out of scope.
+- Without a user sort, vehicles use ascending vehicle-ID order. Column sorting is optional (Nice, WBS 4.24) and is built only when that task is active.
 - Proposed actions are available only for aging vehicles.
 - One current action is retained per vehicle; a new action replaces the previous action.
 - An action is required; the note is optional.
 - Save behavior is pessimistic: update the row only after service success.
 - On save failure, preserve the previous successful action.
 - Real-time means visible last-refreshed time plus manual refresh.
+
 
 ## Engineering Constraints
 
@@ -346,3 +350,19 @@ Rules:
 - Do not add sorting before the Core UX gate passes.
 - Add no new features after the Quality gate.
 - If manual walkthrough work overruns, drop WBS 5.5 before weakening WBS 5.4.
+- CR drop order if behind: Nice first (4.24, 4.23, 4.22, 4.21), then Should (4.18, 4.17, 4.19). Keep 4.20. Do not reinstate 4.25-4.27.
+
+
+## Change Request (CR) Scope
+
+CR items are approved only as recorded in `docs/requirements-baseline.md` (v4) and `docs/wbs.md` (v5). Files under `docs/cr/` and the mockup HTML are inputs to WBS 1.5 only, not authority.
+
+- Only saved actions persist. Do not persist sort, page, page size, density or views.
+- Paging is client-side: sizes 10/20/50/100, default 20. The page resets to 1 when a filter changes and is clamped when results shrink.
+- One early-warning window of 7 days (days 84-90). It is informational; actions stay aging-only.
+- Freshness thresholds (15 and 60 minutes) are named constants and documented as placeholders.
+- Action entry stays in the existing dialog. Action values are placeholders (C-28).
+- Reviewer switches (forced failure, empty inventory, data age) are read only in the mock adapter or a dev-only module, never in product components. Sample actions are seeded only in demo mode.
+- From the mockup, reuse CSS tokens only. Do not copy its script, demo bar, notes cards or unused `.gauge` rules. Use the README blue focus ring.
+- The correlation-ID "Ref" in error messages requires WBS 4.10.
+- Never build WBS 4.25-4.27 or E-10 to E-15 (bulk actions, undo, CSV, print, saved views, density toggle, tablet/mobile layouts, "Updating results" delay, notes cards, requirement-ID overlay).
