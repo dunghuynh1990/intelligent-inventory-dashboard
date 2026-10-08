@@ -1,3 +1,6 @@
+import type { Vehicle, VehicleAction } from '../types/vehicle'
+
 export interface InventoryService {
-  getInventoryCount(): Promise<number>
+  getVehicles(): Promise<Vehicle[]>
+  updateVehicleAction(vehicleId: string, action: VehicleAction): Promise<void>
 }

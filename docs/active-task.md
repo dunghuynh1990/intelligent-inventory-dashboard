@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 5.1
-- Name: Write Aging-Rule Unit Tests
-- Workstream: Testing
+- WBS ID: 4.11
+- Name: Implement InventoryService Interface
+- Workstream: Data & Service
 - Priority: Must
 - Status: Complete
-- Planned effort: 1.25 hours
+- Planned effort: 0.25 hour
 
 ## Objective
 
-Verify the aging business rules with deterministic unit tests using a fixed reference date, covering threshold boundaries, invalid and future dates, and all age-band boundaries.
+Define the typed `InventoryService` contract with vehicle retrieval and current-action update operations, independently of mock data and persistence.
 
 ## Authoritative inputs
 
@@ -26,71 +26,62 @@ Verify the aging business rules with deterministic unit tests using a fixed refe
 - `docs/traceability.md`
 - `docs/active-task.md`
 
-## Linked acceptance criteria
+## Linked acceptance criteria and design choices
 
-WBS 5.1 had no prior row in the traceability table; its mapping is added as part of this task. The test cases cover:
-
-- **AC-R2-01:** 91 days is aging.
-- **AC-R2-02:** exactly 90 days is not aging.
-- **AC-R2-03:** 89 days is not aging.
-- **AC-R2-04:** time of day is ignored when comparing calendar dates.
-- **AC-R2-05:** invalid entry date yields unknown days and not aging without throwing.
-- **AC-R2-06:** future entry date yields unknown days and not aging without throwing.
-- **AC-R2-07:** 30/31 age-band boundary.
-- **AC-R2-08:** 60/61 age-band boundary.
-- **AC-R2-09:** 90/91 age-band boundary.
-- **AC-R2-11:** injected reference date affects age evaluation.
+- **AC-R1-01:** the service returns the vehicle inventory for display.
+- **C-03:** UI depends only on `InventoryService(getVehicles, updateVehicleAction)`.
 
 ## Approved assumptions and design choices used
 
-- Aging is strictly more than 90 complete calendar days; exactly 90 days is not aging.
-- Age bands are `0-30`, `31-60`, `61-90`, and `>90`.
-- Age is evaluated against a fixed injected reference date in tests; runtime callers provide the current date.
-- Calendar-day calculation uses local calendar dates and ignores time of day.
-- Invalid or future stock-entry dates have unknown age and are not aging.
+- `getVehicles` resolves to the existing `Vehicle` domain type.
+- `updateVehicleAction` accepts the stable vehicle ID and a `VehicleAction`, and resolves when the update completes.
+- The interface contains no generated-data, local-storage, or transport details.
+- The existing mock scaffold exposes explicit not-implemented rejections until mock-adapter behavior is delivered by its WBS.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The aging rules are pure TypeScript functions outside React. The unit tests exercise those functions with fixed reference dates and do not depend on UI or service behavior.
+The UI depends on the service interface; the mock adapter implements it in a separate layer. This task defines the contract only and does not implement retrieval, persistence, or action update behavior.
 
 ## In scope
 
-- Verify fixed-date aging tests cover 89, 90, and 91 days.
-- Verify invalid and future dates and all age-band boundaries.
-- Demonstrate that a deliberate mutation to an aging rule causes the relevant test to fail.
-- Record factual AI-assisted testing evidence.
+- Define `getVehicles` and `updateVehicleAction` with domain types.
+- Keep the contract independent of generated data and local storage.
+- Adapt the existing count-only placeholder just enough to implement the contract and fail explicitly until its adapter task.
+- Test that the placeholder reports its unimplemented operations rather than returning success-shaped data.
 
 ## Explicitly out of scope
 
-- Changing aging-rule behavior or its approved threshold.
-- Mock data generation, filtering, React UI, dashboard orchestration, or service changes.
+- Generating vehicles or implementing real mock retrieval.
+- Persistence, simulated delay, or forced-failure behavior.
+- UI integration or changing React components.
 - Adding dependencies.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- `src/core/aging.test.ts`
-- `src/core/aging.ts` (temporary mutation for test-sensitivity verification only; restore afterward)
+- `src/services/inventory-service.ts`
+- `src/services/mock-inventory-service.ts`
+- `src/services/mock-inventory-service.test.ts`
+- `src/types/vehicle.ts`
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 
-The existing aging tests already appear to cover the stated cases; preserve their assertions and add tests only if verification shows a gap.
-
 ## Exit criteria
 
-- Tests use a fixed reference date and cover 89, 90, and 91 days.
-- Tests cover invalid and future dates and all age-band boundaries.
-- At least one deliberate mutation causes its relevant test to fail.
-- An AI-log entry records the actual test work and results.
-- The full test suite, lint, and production build pass after restoring the original rule.
+- `InventoryService` is defined before adapter behavior.
+- Planned operations include typed `getVehicles` and `updateVehicleAction`.
+- UI code can depend only on this interface.
+- The interface is not coupled to local storage or generated data.
+- The existing placeholder conforms to the interface and reports unimplemented behavior explicitly.
+- Tests, lint, and production build pass.
 - Copilot stops before staging, committing, or pushing.
 
 ## Verification commands
 
 ```bash
-npm test -- --pool=threads src/core/aging.test.ts -t "classifies 90 days"
+npm test -- --pool=threads src/services/mock-inventory-service.test.ts
 npm test -- --pool=threads
 npm run lint
 npm run build
