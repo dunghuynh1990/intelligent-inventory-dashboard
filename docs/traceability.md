@@ -14,5 +14,5 @@
 | 3.3 | Reconcile initial component responsibilities with the WBS 3.1 wireframe | Document dashboard presentation components, state ownership, service/core boundaries, and WBS 6.4 reconciliation notes in `docs/system-design.md` | Review component list against wireframe; confirm no custom-hook/global-state layer; `git diff --check` | Complete |
 | 4.1 | Application shell and styling foundation (no directly linked AC IDs) | Semantic dashboard shell and header with responsive reusable style tokens | Shell component tests; full test suite, lint, build, and desktop/mobile browser review | Complete |
 | 4.4 | AC-R1-01/02, AC-R2-12, AC-R4-01/02/04, AC-R5-01/02 | Inventory table and service-backed refresh display | Component tests for required row fields, aging badge, loading/empty/error/retry, refresh timestamp; full suite, lint, build, and responsive browser review | Complete |
-| 4.5 | AC-R1-03 to AC-R1-09 | Pure filters and filter UI | Unit and component tests | Not Started |
+| 4.5 | AC-R1-03 to AC-R1-11, AC-R4-03 | Pure filtering, make/model options, stable ID order, and filter UI | Core boundary/composition tests, component filter/reset/no-result tests, full suite, lint, build, and responsive browser review | Complete |
 | 4.7 | AC-R3-01 to AC-R3-05 | Aging action workflow | Component and service tests | Not Started |

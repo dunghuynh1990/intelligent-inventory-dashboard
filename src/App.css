@@ -129,6 +129,21 @@
   text-align: center;
 }
 
+.inventory-no-results {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.inventory-no-results p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
 @media (max-width: 40rem) {
   .dashboard-header {
     align-items: flex-start;

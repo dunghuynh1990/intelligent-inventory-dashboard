@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { calculateVehicleAge, getAgeBand, isAging } from './aging'
+import type { Vehicle } from '../types/vehicle'
+import {
+  calculateVehicleAge,
+  filterVehicles,
+  getAgeBand,
+  getAvailableMakes,
+  getAvailableModels,
+  isAging,
+} from './aging'
 
 const referenceDate = new Date(2024, 5, 1, 0, 1)
 
@@ -13,6 +21,53 @@ function localDateString(date: Date): string {
 function entryDateDaysBefore(days: number): string {
   return localDateString(new Date(2024, 5, 1 - days))
 }
+
+const filterTestVehicles: Vehicle[] = [
+  {
+    vehicleId: 'vehicle-003',
+    stockNumber: 'STK-CAMRY',
+    make: 'Toyota',
+    model: 'Camry',
+    stockEntryDate: entryDateDaysBefore(30),
+    currentAction: null,
+    daysInStock: 30,
+    isAging: false,
+    ageBand: '0-30',
+  },
+  {
+    vehicleId: 'vehicle-001',
+    stockNumber: 'STK-COROLLA',
+    make: 'Toyota',
+    model: 'Corolla',
+    stockEntryDate: entryDateDaysBefore(91),
+    currentAction: null,
+    daysInStock: 91,
+    isAging: true,
+    ageBand: '>90',
+  },
+  {
+    vehicleId: 'vehicle-002',
+    stockNumber: 'STK-CIVIC',
+    make: 'Honda',
+    model: 'Civic',
+    stockEntryDate: entryDateDaysBefore(31),
+    currentAction: null,
+    daysInStock: 31,
+    isAging: false,
+    ageBand: '31-60',
+  },
+  {
+    vehicleId: 'vehicle-004',
+    stockNumber: 'STK-UNKNOWN',
+    make: 'Toyota',
+    model: 'Corolla',
+    stockEntryDate: 'invalid',
+    currentAction: null,
+    daysInStock: null,
+    isAging: false,
+    ageBand: null,
+  },
+]
 
 describe('vehicle aging rules', () => {
   it.each([
@@ -85,5 +140,121 @@ describe('vehicle aging rules', () => {
 
   it('rejects an invalid injected reference date explicitly', () => {
     expect(() => calculateVehicleAge('2024-01-01', new Date(Number.NaN))).toThrow(RangeError)
+  })
+})
+
+describe('inventory filtering', () => {
+  const noFilters = {
+    searchText: '',
+    make: '',
+    model: '',
+    ageBand: '',
+    agingOnly: false,
+  } as const
+
+  it('returns every vehicle in ascending ID order when no filters are active', () => {
+    const results = filterVehicles(filterTestVehicles, noFilters)
+
+    expect(results.map(({ vehicleId }) => vehicleId)).toEqual([
+      'vehicle-001',
+      'vehicle-002',
+      'vehicle-003',
+      'vehicle-004',
+    ])
+    expect(filterTestVehicles[0].vehicleId).toBe('vehicle-003')
+  })
+
+  it('searches stock number, make, and model case-insensitively', () => {
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, searchText: ' cIv ' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-002'])
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, searchText: 'toyota' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-001', 'vehicle-003', 'vehicle-004'])
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, searchText: 'STK-UNKNOWN' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-004'])
+  })
+
+  it('filters by make and model', () => {
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, make: 'Toyota' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-001', 'vehicle-003', 'vehicle-004'])
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, model: 'Corolla' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-001', 'vehicle-004'])
+  })
+
+  it('filters by age band and excludes vehicles with unknown age', () => {
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, ageBand: '31-60' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-002'])
+  })
+
+  it('filters to aging vehicles only', () => {
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, agingOnly: true }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-001'])
+  })
+
+  it('combines search, make, model, age band, and aging-only with AND', () => {
+    expect(
+      filterVehicles(filterTestVehicles, {
+        searchText: 'cor',
+        make: 'Toyota',
+        model: 'Corolla',
+        ageBand: '>90',
+        agingOnly: true,
+      }).map(({ vehicleId }) => vehicleId),
+    ).toEqual(['vehicle-001'])
+  })
+
+  it('provides unique sorted makes and make-dependent model options', () => {
+    expect(getAvailableMakes(filterTestVehicles)).toEqual(['Honda', 'Toyota'])
+    expect(getAvailableModels(filterTestVehicles, 'Toyota')).toEqual(['Camry', 'Corolla'])
+    expect(getAvailableModels(filterTestVehicles, '')).toEqual([
+      'Camry',
+      'Civic',
+      'Corolla',
+    ])
+  })
+
+  it('returns no vehicles when active filters do not match', () => {
+    expect(
+      filterVehicles(filterTestVehicles, {
+        ...noFilters,
+        make: 'Honda',
+        model: 'Corolla',
+      }),
+    ).toEqual([])
+  })
+
+  it('filters and orders an approximately 200-vehicle inventory', () => {
+    const vehicles = Array.from({ length: 200 }, (_, index) => ({
+      ...filterTestVehicles[index % filterTestVehicles.length],
+      vehicleId: `vehicle-${String(200 - index).padStart(3, '0')}`,
+    }))
+    const results = filterVehicles(vehicles, noFilters)
+    const toyotaVehicles = filterVehicles(vehicles, { ...noFilters, make: 'Toyota' })
+
+    expect(results).toHaveLength(200)
+    expect(results[0].vehicleId).toBe('vehicle-001')
+    expect(results.at(-1)?.vehicleId).toBe('vehicle-200')
+    expect(toyotaVehicles).toHaveLength(150)
+    expect(toyotaVehicles.every(({ make }) => make === 'Toyota')).toBe(true)
   })
 })

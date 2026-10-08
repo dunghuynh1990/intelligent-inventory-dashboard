@@ -39,6 +39,28 @@ const sampleVehicles: Vehicle[] = [
     isAging: false,
     ageBand: null,
   },
+  {
+    vehicleId: 'vehicle-004',
+    stockNumber: 'STK-0004',
+    make: 'Toyota',
+    model: 'Corolla',
+    stockEntryDate: '2026-07-09',
+    currentAction: null,
+    daysInStock: 91,
+    isAging: true,
+    ageBand: '>90',
+  },
+  {
+    vehicleId: 'vehicle-005',
+    stockNumber: 'STK-0005',
+    make: 'Toyota',
+    model: 'Camry',
+    stockEntryDate: '2026-09-09',
+    currentAction: null,
+    daysInStock: 30,
+    isAging: false,
+    ageBand: '0-30',
+  },
 ]
 
 function createInventoryService(getVehicles: InventoryService['getVehicles']): InventoryService {
@@ -86,7 +108,7 @@ describe('App', () => {
     render(<App inventoryService={service} clock={clock} />)
 
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
-    expect(within(table).getAllByRole('row')).toHaveLength(4)
+    expect(within(table).getAllByRole('row')).toHaveLength(sampleVehicles.length + 1)
 
     const agingVehicleRow = within(table).getByRole('row', { name: /STK-0001/ })
     expect(agingVehicleRow).toHaveTextContent('Ford')
@@ -183,5 +205,118 @@ describe('App', () => {
     expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
     expect(screen.getByText('Last refreshed').parentElement?.querySelector('time'))
       .toHaveAttribute('datetime', refreshedAt.toISOString())
+  })
+
+  it('filters inventory by search, make, model, age band, and aging-only', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'cIv')
+    expect(within(table).getAllByRole('row')).toHaveLength(2)
+    expect(within(table).getByRole('row', { name: /STK-0002/ })).toBeInTheDocument()
+
+    await user.clear(screen.getByRole('searchbox', { name: 'Search' }))
+    await user.selectOptions(screen.getByLabelText('Make'), 'Toyota')
+    expect(within(table).getAllByRole('row')).toHaveLength(4)
+    expect(within(table).queryByRole('row', { name: /STK-0002/ })).not.toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Model'), 'Corolla')
+    expect(within(table).getAllByRole('row')).toHaveLength(3)
+
+    await user.selectOptions(screen.getByLabelText('Age band'), '>90')
+    expect(within(table).getAllByRole('row')).toHaveLength(2)
+    expect(within(table).getByRole('row', { name: /STK-0004/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('checkbox', { name: 'Aging only' }))
+    expect(within(table).getAllByRole('row')).toHaveLength(2)
+  })
+
+  it('updates model options with make and clears a model unavailable for the new make', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    await user.selectOptions(screen.getByLabelText('Make'), 'Honda')
+    await user.selectOptions(screen.getByLabelText('Model'), 'Civic')
+    expect(screen.getByLabelText('Model')).toHaveValue('Civic')
+
+    await user.selectOptions(screen.getByLabelText('Make'), 'Toyota')
+
+    expect(screen.getByLabelText('Model')).toHaveValue('')
+    expect(
+      within(screen.getByLabelText('Model')).getByRole('option', { name: 'Corolla' }),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByLabelText('Model')).getByRole('option', { name: 'Camry' }),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByLabelText('Model')).queryByRole('option', { name: 'Civic' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows only aging vehicles when aging-only is enabled', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    await user.click(screen.getByRole('checkbox', { name: 'Aging only' }))
+
+    expect(screen.getByRole('checkbox', { name: 'Aging only' })).toBeChecked()
+    expect(within(table).getAllByRole('row')).toHaveLength(3)
+    expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /STK-0004/ })).toBeInTheDocument()
+    expect(within(table).queryByRole('row', { name: /STK-0002/ })).not.toBeInTheDocument()
+  })
+
+  it('combines active filters with AND and clears every filter', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'toyota')
+    await user.selectOptions(screen.getByLabelText('Make'), 'Toyota')
+    await user.selectOptions(screen.getByLabelText('Model'), 'Corolla')
+    await user.selectOptions(screen.getByLabelText('Age band'), '>90')
+    await user.click(screen.getByRole('checkbox', { name: 'Aging only' }))
+
+    expect(within(table).getAllByRole('row')).toHaveLength(2)
+    expect(within(table).getByRole('row', { name: /STK-0004/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('')
+    expect(screen.getByLabelText('Make')).toHaveValue('')
+    expect(screen.getByLabelText('Model')).toHaveValue('')
+    expect(screen.getByLabelText('Age band')).toHaveValue('')
+    expect(screen.getByRole('checkbox', { name: 'Aging only' })).not.toBeChecked()
+    expect(within(table).getAllByRole('row')).toHaveLength(sampleVehicles.length + 1)
+  })
+
+  it('shows a distinct no-results message and clears filters from that state', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'no matching vehicle')
+
+    expect(await screen.findByText('No vehicles match these filters.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+    expect(screen.queryByText('No vehicles in inventory.')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(await screen.findByRole('table', { name: 'Vehicle inventory' })).toBeInTheDocument()
+    expect(screen.queryByText('No vehicles match these filters.')).not.toBeInTheDocument()
   })
 })

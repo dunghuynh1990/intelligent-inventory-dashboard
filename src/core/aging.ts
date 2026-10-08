@@ -1,6 +1,15 @@
-import type { AgeBand, CalculatedVehicleData } from '../types/vehicle'
+import type { AgeBand, CalculatedVehicleData, Vehicle } from '../types/vehicle'
 
 export const AGING_THRESHOLD_DAYS = 90
+export const AGE_BANDS: readonly AgeBand[] = ['0-30', '31-60', '61-90', '>90']
+
+export interface InventoryFilterCriteria {
+  searchText: string
+  make: string
+  model: string
+  ageBand: AgeBand | ''
+  agingOnly: boolean
+}
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000
 const isoCalendarDate = /^(\d{4})-(\d{2})-(\d{2})(?:$|[Tt ])/
@@ -58,6 +67,47 @@ export function calculateVehicleAge(
     isAging: isAging(daysInStock),
     ageBand: getAgeBand(daysInStock),
   }
+}
+
+export function filterVehicles(
+  vehicles: Vehicle[],
+  filters: InventoryFilterCriteria,
+): Vehicle[] {
+  const searchText = filters.searchText.trim().toLowerCase()
+
+  return vehicles
+    .filter((vehicle) => {
+      const matchesSearch =
+        !searchText ||
+        [vehicle.stockNumber, vehicle.make, vehicle.model].some((value) =>
+          value.toLowerCase().includes(searchText),
+        )
+
+      return (
+        matchesSearch &&
+        (!filters.make || vehicle.make === filters.make) &&
+        (!filters.model || vehicle.model === filters.model) &&
+        (!filters.ageBand || vehicle.ageBand === filters.ageBand) &&
+        (!filters.agingOnly || vehicle.isAging)
+      )
+    })
+    .sort((left, right) => left.vehicleId.localeCompare(right.vehicleId))
+}
+
+export function getAvailableMakes(vehicles: Vehicle[]): string[] {
+  return [...new Set(vehicles.map(({ make }) => make))].sort((left, right) =>
+    left.localeCompare(right),
+  )
+}
+
+export function getAvailableModels(vehicles: Vehicle[], make: string): string[] {
+  const matchingVehicles = make
+    ? vehicles.filter((vehicle) => vehicle.make === make)
+    : vehicles
+
+  return [...new Set(matchingVehicles.map(({ model }) => model))].sort((left, right) =>
+    left.localeCompare(right),
+  )
 }
 
 function getEntryCalendarDay(stockEntryDate: string): number | null {

@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  filterVehicles,
+  getAvailableMakes,
+  getAvailableModels,
+  type InventoryFilterCriteria,
+} from './core/aging'
 import type { InventoryService } from './services/inventory-service'
 import type { Vehicle } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
+import { InventoryFilters } from './components/InventoryFilters'
 import './App.css'
 
 type AppProps = {
@@ -11,11 +18,31 @@ type AppProps = {
 
 const systemClock = () => new Date()
 
+const emptyFilters: InventoryFilterCriteria = {
+  searchText: '',
+  make: '',
+  model: '',
+  ageBand: '',
+  agingOnly: false,
+}
+const noVehicles: Vehicle[] = []
+
 function App({ inventoryService, clock = systemClock }: AppProps) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<InventoryFilterCriteria>(emptyFilters)
+  const allVehicles = vehicles ?? noVehicles
+  const makes = useMemo(() => getAvailableMakes(allVehicles), [allVehicles])
+  const models = useMemo(
+    () => getAvailableModels(allVehicles, filters.make),
+    [allVehicles, filters.make],
+  )
+  const filteredVehicles = useMemo(
+    () => filterVehicles(allVehicles, filters),
+    [allVehicles, filters],
+  )
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -69,6 +96,15 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
         timeStyle: 'short',
       }).format(lastRefreshed)
     : 'Not yet'
+
+  const handleMakeChange = (make: string) => {
+    const availableModels = getAvailableModels(allVehicles, make)
+    setFilters((currentFilters) => ({
+      ...currentFilters,
+      make,
+      model: availableModels.includes(currentFilters.model) ? currentFilters.model : '',
+    }))
+  }
 
   return (
     <div className="dashboard-shell">
@@ -124,7 +160,31 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
             <p className="inventory-empty">No vehicles in inventory.</p>
           )}
           {vehicles !== null && vehicles.length > 0 && (
-            <InventoryTable vehicles={vehicles} />
+            <>
+              <InventoryFilters
+                filters={filters}
+                makes={makes}
+                models={models}
+                showClearButton={filteredVehicles.length > 0}
+                onChange={setFilters}
+                onMakeChange={handleMakeChange}
+                onReset={() => setFilters(emptyFilters)}
+              />
+              {filteredVehicles.length === 0 ? (
+                <div className="inventory-no-results">
+                  <p>No vehicles match these filters.</p>
+                  <button
+                    className="clear-filters-button"
+                    type="button"
+                    onClick={() => setFilters(emptyFilters)}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              ) : (
+                <InventoryTable vehicles={filteredVehicles} />
+              )}
+            </>
           )}
         </section>
       </main>
