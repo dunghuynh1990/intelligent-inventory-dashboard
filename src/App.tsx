@@ -6,7 +6,7 @@ import {
   type InventoryFilterCriteria,
 } from './core/aging'
 import type { InventoryService } from './services/inventory-service'
-import type { Vehicle } from './types/vehicle'
+import type { Vehicle, VehicleAction } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
 import { InventoryFilters } from './components/InventoryFilters'
 import './App.css'
@@ -33,6 +33,8 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<InventoryFilterCriteria>(emptyFilters)
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null)
+  const [savingVehicleId, setSavingVehicleId] = useState<string | null>(null)
   const allVehicles = vehicles ?? noVehicles
   const makes = useMemo(() => getAvailableMakes(allVehicles), [allVehicles])
   const models = useMemo(
@@ -104,6 +106,23 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
       make,
       model: availableModels.includes(currentFilters.model) ? currentFilters.model : '',
     }))
+  }
+
+  const handleSaveAction = async (vehicleId: string, action: VehicleAction) => {
+    setSavingVehicleId(vehicleId)
+    try {
+      await inventoryService.updateVehicleAction(vehicleId, action)
+      setVehicles((currentVehicles) =>
+        currentVehicles?.map((vehicle) =>
+          vehicle.vehicleId === vehicleId
+            ? { ...vehicle, currentAction: action }
+            : vehicle,
+        ) ?? null,
+      )
+      setEditingVehicleId(null)
+    } finally {
+      setSavingVehicleId(null)
+    }
   }
 
   return (
@@ -182,7 +201,14 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                   </button>
                 </div>
               ) : (
-                <InventoryTable vehicles={filteredVehicles} />
+                <InventoryTable
+                  vehicles={filteredVehicles}
+                  editingVehicleId={editingVehicleId}
+                  isSaving={savingVehicleId !== null}
+                  onEditAction={(vehicle) => setEditingVehicleId(vehicle.vehicleId)}
+                  onCancelAction={() => setEditingVehicleId(null)}
+                  onSaveAction={handleSaveAction}
+                />
               )}
             </>
           )}

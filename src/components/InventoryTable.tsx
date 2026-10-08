@@ -1,11 +1,24 @@
-import type { Vehicle } from '../types/vehicle'
+import type { Vehicle, VehicleAction } from '../types/vehicle'
+import { ProposedActionForm } from './ProposedActionForm'
 import './InventoryTable.css'
 
 type InventoryTableProps = {
   vehicles: Vehicle[]
+  editingVehicleId: string | null
+  isSaving: boolean
+  onEditAction: (vehicle: Vehicle) => void
+  onCancelAction: () => void
+  onSaveAction: (vehicleId: string, action: VehicleAction) => Promise<void>
 }
 
-export function InventoryTable({ vehicles }: InventoryTableProps) {
+export function InventoryTable({
+  vehicles,
+  editingVehicleId,
+  isSaving,
+  onEditAction,
+  onCancelAction,
+  onSaveAction,
+}: InventoryTableProps) {
   return (
     <div className="inventory-table-scroll">
       <table className="inventory-table">
@@ -46,6 +59,25 @@ export function InventoryTable({ vehicles }: InventoryTableProps) {
                   </span>
                 ) : (
                   'No action'
+                )}
+                {vehicle.isAging && (
+                  editingVehicleId === vehicle.vehicleId ? (
+                    <ProposedActionForm
+                      vehicle={vehicle}
+                      isSaving={isSaving}
+                      onSave={onSaveAction}
+                      onCancel={onCancelAction}
+                    />
+                  ) : (
+                    <button
+                      className="action-edit-button"
+                      type="button"
+                      disabled={isSaving}
+                      onClick={() => onEditAction(vehicle)}
+                    >
+                      {vehicle.currentAction ? 'Edit action' : 'Propose action'}
+                    </button>
+                  )
                 )}
               </td>
             </tr>

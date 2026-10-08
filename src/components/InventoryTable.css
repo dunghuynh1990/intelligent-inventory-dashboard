@@ -72,3 +72,8 @@
   color: var(--color-text-muted);
   white-space: normal;
 }
+
+.action-edit-button {
+  margin-top: var(--space-2);
+  white-space: nowrap;
+}

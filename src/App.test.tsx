@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { MockInventoryService } from './services/mock-inventory-service'
 import type { InventoryService } from './services/inventory-service'
 import type { Vehicle } from './types/vehicle'
 import App from './App'
@@ -72,6 +73,7 @@ function createInventoryService(getVehicles: InventoryService['getVehicles']): I
 
 afterEach(() => {
   vi.restoreAllMocks()
+  window.localStorage.clear()
 })
 
 describe('App', () => {
@@ -122,6 +124,13 @@ describe('App', () => {
     const nonAgingVehicleRow = within(table).getByRole('row', { name: /STK-0002/ })
     expect(within(nonAgingVehicleRow).queryByText('Aging')).not.toBeInTheDocument()
     expect(nonAgingVehicleRow).toHaveTextContent('No action')
+    expect(within(nonAgingVehicleRow).queryByRole('button', { name: /action/i }))
+      .not.toBeInTheDocument()
+    expect(within(agingVehicleRow).getByRole('button', { name: 'Edit action' }))
+      .toBeInTheDocument()
+    const agingWithoutActionRow = within(table).getByRole('row', { name: /STK-0004/ })
+    expect(within(agingWithoutActionRow).getByRole('button', { name: 'Propose action' }))
+      .toBeInTheDocument()
 
     const unknownAgeVehicleRow = within(table).getByRole('row', { name: /STK-0003/ })
     expect(unknownAgeVehicleRow).toHaveTextContent('Unknown')
@@ -132,6 +141,146 @@ describe('App', () => {
     expect(clock).toHaveBeenCalledOnce()
     expect(service.updateVehicleAction).not.toHaveBeenCalled()
   })
+
+  it('validates a missing action and does not save a note by itself', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0004/ })
+
+    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    await user.type(screen.getByLabelText('Note (optional)'), 'Review this week')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Select an action before saving.',
+    )
+    expect(row).toHaveTextContent('No action')
+    expect(service.updateVehicleAction).not.toHaveBeenCalled()
+  })
+
+  it('keeps the previous action on save failure and retries the replacement', async () => {
+    const vehicles: Vehicle[] = sampleVehicles.map((vehicle) =>
+      vehicle.vehicleId === 'vehicle-004'
+        ? { ...vehicle, currentAction: { action: 'Review', note: 'Existing note' } }
+        : vehicle,
+    )
+    const updateVehicleAction = vi
+      .fn<InventoryService['updateVehicleAction']>()
+      .mockRejectedValueOnce(
+        new Error('MockInventoryService forced failure is enabled'),
+      )
+      .mockResolvedValue(undefined)
+    const service: InventoryService = {
+      getVehicles: vi.fn().mockResolvedValue(vehicles),
+      updateVehicleAction,
+    }
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0004/ })
+
+    await user.click(within(row).getByRole('button', { name: 'Edit action' }))
+    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
+    await user.clear(screen.getByLabelText('Note (optional)'))
+    await user.type(screen.getByLabelText('Note (optional)'), 'New plan')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'MockInventoryService forced failure is enabled',
+    )
+    expect(row).toHaveTextContent('Review')
+    expect(row).toHaveTextContent('Existing note')
+    expect(within(row).queryByText('Price Reduction Planned', {
+      selector: '.inventory-action span',
+    })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Retry save' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Retry save' }))
+
+    await waitFor(() => {
+      expect(row).toHaveTextContent('Price Reduction Planned')
+      expect(row).toHaveTextContent('New plan')
+    })
+    expect(row).not.toHaveTextContent('Existing note')
+    expect(updateVehicleAction).toHaveBeenCalledTimes(2)
+    expect(updateVehicleAction).toHaveBeenLastCalledWith('vehicle-004', {
+      action: 'Price Reduction Planned',
+      note: 'New plan',
+    })
+  })
+
+  it('keeps the previous row action visible and disables controls while saving', async () => {
+    let resolveSave: (() => void) | undefined
+    const updateVehicleAction = vi.fn<InventoryService['updateVehicleAction']>(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    const service: InventoryService = {
+      getVehicles: vi.fn().mockResolvedValue(sampleVehicles),
+      updateVehicleAction,
+    }
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0004/ })
+
+    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    expect(row).toHaveTextContent('No action')
+    expect(within(row).queryByText('Price Reduction Planned', {
+      selector: '.inventory-action span',
+    })).not.toBeInTheDocument()
+
+    await act(async () => {
+      resolveSave?.()
+    })
+
+    await waitFor(() => expect(row).toHaveTextContent('Price Reduction Planned'))
+    expect(updateVehicleAction).toHaveBeenCalledWith('vehicle-004', {
+      action: 'Price Reduction Planned',
+    })
+  })
+
+  it('persists a saved action and note across dashboard reloads', async () => {
+    const createService = () =>
+      new MockInventoryService({
+        referenceDate: new Date(2024, 5, 1, 12),
+        delayMs: 0,
+      })
+    const user = userEvent.setup()
+    const firstRender = render(<App inventoryService={createService()} />)
+    const firstTable = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const agingVehicleRow = within(firstTable).getByRole('row', { name: /STK-0003/ })
+
+    await user.click(within(agingVehicleRow).getByRole('button', { name: 'Propose action' }))
+    await user.selectOptions(screen.getByLabelText('Action'), 'Price Reduction Planned')
+    await user.type(screen.getByLabelText('Note (optional)'), 'Revisit next week')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    await waitFor(() => {
+      expect(agingVehicleRow).toHaveTextContent('Price Reduction Planned')
+      expect(agingVehicleRow).toHaveTextContent('Revisit next week')
+    })
+    firstRender.unmount()
+
+    render(<App inventoryService={createService()} />)
+    const reloadedTable = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const reloadedRow = within(reloadedTable).getByRole('row', { name: /STK-0003/ })
+    expect(reloadedRow).toHaveTextContent('Price Reduction Planned')
+    expect(reloadedRow).toHaveTextContent('Revisit next week')
+    expect(within(reloadedRow).getByRole('button', { name: 'Edit action' }))
+      .toBeInTheDocument()
+  }, 15000)
 
   it('shows an empty-inventory message when the service returns no vehicles', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue([]))
