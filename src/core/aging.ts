@@ -2,6 +2,17 @@ import type { AgeBand, CalculatedVehicleData, Vehicle } from '../types/vehicle'
 
 export const AGING_THRESHOLD_DAYS = 90
 export const AGE_BANDS: readonly AgeBand[] = ['0-30', '31-60', '61-90', '>90']
+export const PAGE_SIZES = [10, 20, 50, 100] as const
+export const FRESHNESS_AMBER_AFTER_MINUTES = 15
+export const FRESHNESS_WARNING_AFTER_MINUTES = 60
+
+export type ActionFilter = 'any' | 'no-action' | 'has-action'
+export type EntryDateIssue =
+  | 'Missing entry date'
+  | 'Invalid entry date'
+  | 'Future entry date'
+export type FreshnessLevel = 'normal' | 'amber' | 'warning'
+export type PageSize = (typeof PAGE_SIZES)[number]
 
 export interface InventoryFilterCriteria {
   searchText: string
@@ -9,36 +20,54 @@ export interface InventoryFilterCriteria {
   model: string
   ageBand: AgeBand | ''
   agingOnly: boolean
+  actionFilter?: ActionFilter
 }
 
 export interface InventorySummaryCounts {
   totalVehicles: number
   agingVehicles: number
   agingVehiclesWithAction: number
+  dataIssueVehicles: number
+}
+
+export interface PaginatedItems<T> {
+  items: T[]
+  currentPage: number
+  pageSize: PageSize
+  totalItems: number
+  totalPages: number
 }
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000
+const millisecondsPerMinute = 60 * 1000
 const isoCalendarDate = /^(\d{4})-(\d{2})-(\d{2})(?:$|[Tt ])/
 
 export function calculateDaysInStock(stockEntryDate: string, referenceDate: Date): number | null {
-  const referenceTime = referenceDate.getTime()
-  if (!Number.isFinite(referenceTime)) {
-    throw new RangeError('referenceDate must be a valid date')
-  }
-
+  const referenceDay = getReferenceCalendarDay(referenceDate)
   const entryDay = getEntryCalendarDay(stockEntryDate)
   if (entryDay === null) {
     return null
   }
 
-  const referenceDay = getCalendarDay(
-    referenceDate.getFullYear(),
-    referenceDate.getMonth(),
-    referenceDate.getDate(),
-  )
   const daysInStock = referenceDay - entryDay
 
   return daysInStock < 0 ? null : daysInStock
+}
+
+export function classifyEntryDateIssue(
+  stockEntryDate: string | null | undefined,
+  referenceDate: Date,
+): EntryDateIssue | null {
+  const referenceDay = getReferenceCalendarDay(referenceDate)
+  if (stockEntryDate == null || stockEntryDate.trim() === '') {
+    return 'Missing entry date'
+  }
+
+  const entryDay = getEntryCalendarDay(stockEntryDate)
+  if (entryDay === null) {
+    return 'Invalid entry date'
+  }
+  return entryDay > referenceDay ? 'Future entry date' : null
 }
 
 export function isAging(daysInStock: number | null): boolean {
@@ -76,21 +105,27 @@ export function calculateVehicleAge(
 }
 
 export function filterVehicles(
-  vehicles: Vehicle[],
+  vehicles: Array<Vehicle & { vin?: string }>,
   filters: InventoryFilterCriteria,
 ): Vehicle[] {
   const searchText = filters.searchText.trim().toLowerCase()
+  const actionFilter = filters.actionFilter ?? 'any'
 
   return vehicles
     .filter((vehicle) => {
       const matchesSearch =
         !searchText ||
-        [vehicle.stockNumber, vehicle.make, vehicle.model].some((value) =>
-          value.toLowerCase().includes(searchText),
+        [vehicle.stockNumber, vehicle.vin ?? '', vehicle.make, vehicle.model].some(
+          (value) => value.toLowerCase().includes(searchText),
         )
+      const matchesAction =
+        actionFilter === 'any' ||
+        (actionFilter === 'no-action' && vehicle.isAging && vehicle.currentAction === null) ||
+        (actionFilter === 'has-action' && vehicle.currentAction !== null)
 
       return (
         matchesSearch &&
+        matchesAction &&
         (!filters.make || vehicle.make === filters.make) &&
         (!filters.model || vehicle.model === filters.model) &&
         (!filters.ageBand || vehicle.ageBand === filters.ageBand) &&
@@ -98,6 +133,55 @@ export function filterVehicles(
       )
     })
     .sort((left, right) => left.vehicleId.localeCompare(right.vehicleId))
+}
+
+export function paginateItems<T>(
+  items: T[],
+  requestedPage: number,
+  pageSize: PageSize,
+): PaginatedItems<T> {
+  if (!Number.isFinite(requestedPage)) {
+    throw new RangeError('requestedPage must be a finite number')
+  }
+  if (!PAGE_SIZES.includes(pageSize)) {
+    throw new RangeError(`pageSize must be one of ${PAGE_SIZES.join(', ')}`)
+  }
+
+  const totalItems = items.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const currentPage = Math.min(
+    Math.max(Math.trunc(requestedPage), 1),
+    Math.max(totalPages, 1),
+  )
+  const startIndex = (currentPage - 1) * pageSize
+
+  return {
+    items: items.slice(startIndex, startIndex + pageSize),
+    currentPage,
+    pageSize,
+    totalItems,
+    totalPages,
+  }
+}
+
+export function getFreshnessLevel(lastRefreshedAt: Date, now: Date): FreshnessLevel {
+  const lastRefreshedTime = lastRefreshedAt.getTime()
+  const currentTime = now.getTime()
+  if (!Number.isFinite(lastRefreshedTime)) {
+    throw new RangeError('lastRefreshedAt must be a valid date')
+  }
+  if (!Number.isFinite(currentTime)) {
+    throw new RangeError('now must be a valid date')
+  }
+
+  const ageInMinutes = (currentTime - lastRefreshedTime) / millisecondsPerMinute
+  if (ageInMinutes >= FRESHNESS_WARNING_AFTER_MINUTES) {
+    return 'warning'
+  }
+  if (ageInMinutes >= FRESHNESS_AMBER_AFTER_MINUTES) {
+    return 'amber'
+  }
+  return 'normal'
 }
 
 export function getAvailableMakes(vehicles: Vehicle[]): string[] {
@@ -120,6 +204,9 @@ export function getInventorySummary(vehicles: Vehicle[]): InventorySummaryCounts
   return vehicles.reduce<InventorySummaryCounts>(
     (summary, vehicle) => {
       summary.totalVehicles += 1
+      if (vehicle.daysInStock === null) {
+        summary.dataIssueVehicles += 1
+      }
       if (vehicle.isAging) {
         summary.agingVehicles += 1
         if (vehicle.currentAction) {
@@ -128,7 +215,19 @@ export function getInventorySummary(vehicles: Vehicle[]): InventorySummaryCounts
       }
       return summary
     },
-    { totalVehicles: 0, agingVehicles: 0, agingVehiclesWithAction: 0 },
+    { totalVehicles: 0, agingVehicles: 0, agingVehiclesWithAction: 0, dataIssueVehicles: 0 },
+  )
+}
+
+function getReferenceCalendarDay(referenceDate: Date): number {
+  if (!Number.isFinite(referenceDate.getTime())) {
+    throw new RangeError('referenceDate must be a valid date')
+  }
+
+  return getCalendarDay(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
   )
 }
 

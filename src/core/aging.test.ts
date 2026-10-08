@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 import type { Vehicle } from '../types/vehicle'
 import {
   calculateVehicleAge,
+  classifyEntryDateIssue,
   filterVehicles,
   getAgeBand,
   getAvailableMakes,
   getAvailableModels,
+  getFreshnessLevel,
   getInventorySummary,
   isAging,
+  paginateItems,
+  type PageSize,
 } from './aging'
 
 const referenceDate = new Date(2024, 5, 1, 0, 1)
@@ -23,7 +27,7 @@ function entryDateDaysBefore(days: number): string {
   return localDateString(new Date(2024, 5, 1 - days))
 }
 
-const filterTestVehicles: Vehicle[] = [
+const filterTestVehicles: Array<Vehicle & { vin?: string }> = [
   {
     vehicleId: 'vehicle-003',
     stockNumber: 'STK-CAMRY',
@@ -56,6 +60,7 @@ const filterTestVehicles: Vehicle[] = [
     daysInStock: 31,
     isAging: false,
     ageBand: '31-60',
+    vin: '1HGCM82633A004352',
   },
   {
     vehicleId: 'vehicle-004',
@@ -145,6 +150,30 @@ describe('vehicle aging rules', () => {
   })
 })
 
+describe('entry-date issue classification', () => {
+  it.each([
+    ['', 'Missing entry date'],
+    ['   ', 'Missing entry date'],
+    ['not-a-date', 'Invalid entry date'],
+    ['2024-02-30', 'Invalid entry date'],
+    ['2024-06-02', 'Future entry date'],
+    [entryDateDaysBefore(1), null],
+  ] as const)(
+    'classifies entry date %j as %s',
+    (entryDate, expectedIssue) => {
+      expect(classifyEntryDateIssue(entryDate, referenceDate)).toBe(expectedIssue)
+    },
+  )
+
+  it('classifies an absent entry date as missing', () => {
+    expect(classifyEntryDateIssue(undefined, referenceDate)).toBe('Missing entry date')
+  })
+
+  it('rejects an invalid injected reference date explicitly', () => {
+    expect(() => classifyEntryDateIssue('', new Date(Number.NaN))).toThrow(RangeError)
+  })
+})
+
 describe('inventory filtering', () => {
   const noFilters = {
     searchText: '',
@@ -166,7 +195,7 @@ describe('inventory filtering', () => {
     expect(filterTestVehicles[0].vehicleId).toBe('vehicle-003')
   })
 
-  it('searches stock number, make, and model case-insensitively', () => {
+  it('searches stock number, VIN, make, and model case-insensitively', () => {
     expect(
       filterVehicles(filterTestVehicles, { ...noFilters, searchText: ' cIv ' }).map(
         ({ vehicleId }) => vehicleId,
@@ -182,6 +211,11 @@ describe('inventory filtering', () => {
         ({ vehicleId }) => vehicleId,
       ),
     ).toEqual(['vehicle-004'])
+    expect(
+      filterVehicles(filterTestVehicles, { ...noFilters, searchText: 'a0043' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-002'])
   })
 
   it('filters by make and model', () => {
@@ -211,6 +245,38 @@ describe('inventory filtering', () => {
         ({ vehicleId }) => vehicleId,
       ),
     ).toEqual(['vehicle-001'])
+  })
+
+  it('filters no-action results to aging vehicles without a current action', () => {
+    const vehicles = [
+      ...filterTestVehicles,
+      {
+        ...filterTestVehicles[1],
+        vehicleId: 'vehicle-005',
+        currentAction: { action: 'Review' },
+      },
+    ]
+
+    expect(
+      filterVehicles(vehicles, {
+        ...noFilters,
+        actionFilter: 'no-action',
+      }).map(({ vehicleId }) => vehicleId),
+    ).toEqual(['vehicle-001'])
+  })
+
+  it('filters has-action results to vehicles with a current action regardless of age', () => {
+    const vehicles = filterTestVehicles.map((vehicle) =>
+      vehicle.vehicleId === 'vehicle-001' || vehicle.vehicleId === 'vehicle-002'
+        ? { ...vehicle, currentAction: { action: 'Review' } }
+        : vehicle,
+    )
+
+    expect(
+      filterVehicles(vehicles, { ...noFilters, actionFilter: 'has-action' }).map(
+        ({ vehicleId }) => vehicleId,
+      ),
+    ).toEqual(['vehicle-001', 'vehicle-002'])
   })
 
   it('combines search, make, model, age band, and aging-only with AND', () => {
@@ -261,6 +327,73 @@ describe('inventory filtering', () => {
   })
 })
 
+describe('inventory pagination', () => {
+  const items = Array.from({ length: 45 }, (_, index) => index + 1)
+
+  it('slices first and last pages and clamps an out-of-range page', () => {
+    expect(paginateItems(items, 1, 20)).toEqual({
+      items: items.slice(0, 20),
+      currentPage: 1,
+      pageSize: 20,
+      totalItems: 45,
+      totalPages: 3,
+    })
+    expect(paginateItems(items, 3, 20)).toEqual({
+      items: items.slice(40),
+      currentPage: 3,
+      pageSize: 20,
+      totalItems: 45,
+      totalPages: 3,
+    })
+    expect(paginateItems(items, 9, 20).currentPage).toBe(3)
+  })
+
+  it('keeps an empty list on page one and clamps non-positive page requests', () => {
+    expect(paginateItems([], 0, 10)).toEqual({
+      items: [],
+      currentPage: 1,
+      pageSize: 10,
+      totalItems: 0,
+      totalPages: 0,
+    })
+  })
+
+  it.each([10, 20, 50, 100] as const)(
+    'supports the configured page size %i',
+    (pageSize) => {
+      const page = paginateItems(items, 1, pageSize)
+
+      expect(page.pageSize).toBe(pageSize)
+      expect(page.items).toEqual(items.slice(0, pageSize))
+    },
+  )
+
+  it('rejects non-finite page requests and unsupported page sizes', () => {
+    expect(() => paginateItems(items, Number.NaN, 20)).toThrow(RangeError)
+    expect(() => paginateItems(items, 1, 25 as PageSize)).toThrow(RangeError)
+  })
+})
+
+describe('inventory freshness', () => {
+  const now = new Date(2024, 5, 1, 12, 0)
+
+  it.each([
+    [14, 'normal'],
+    [15, 'amber'],
+    [59, 'amber'],
+    [60, 'warning'],
+  ] as const)('classifies data aged %i minutes as %s', (ageMinutes, level) => {
+    const lastRefreshedAt = new Date(now.getTime() - ageMinutes * 60 * 1000)
+
+    expect(getFreshnessLevel(lastRefreshedAt, now)).toBe(level)
+  })
+
+  it('rejects invalid injected timestamps explicitly', () => {
+    expect(() => getFreshnessLevel(new Date(Number.NaN), now)).toThrow(RangeError)
+    expect(() => getFreshnessLevel(now, new Date(Number.NaN))).toThrow(RangeError)
+  })
+})
+
 describe('inventory summary counts', () => {
   it('counts total, aging, and aging-with-action vehicles independently', () => {
     const vehicles = filterTestVehicles.map((vehicle) => {
@@ -277,6 +410,7 @@ describe('inventory summary counts', () => {
       totalVehicles: 4,
       agingVehicles: 1,
       agingVehiclesWithAction: 1,
+      dataIssueVehicles: 1,
     })
   })
 
@@ -285,6 +419,7 @@ describe('inventory summary counts', () => {
       totalVehicles: 0,
       agingVehicles: 0,
       agingVehiclesWithAction: 0,
+      dataIssueVehicles: 0,
     })
   })
 })
