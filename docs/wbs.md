@@ -950,6 +950,20 @@ Triage every change-request item, align Requirements Baseline v4 and Plan v5, an
 - Update the authorized planning baseline, WBS, decision register, traceability and active-task snapshot.
 - Record CR dispositions and unresolved owner decisions without resolving open questions.
 
+### Owner Decisions (Pending)
+
+The following Plan v5 recommendations remain proposals until the repository owner confirms them:
+
+| # | Decision | Plan v5 recommendation |
+|---|---|---|
+| 1 | Who raised the CR, and is it a Keyloop requirement or an own design input? (OQ-14) | Treat it as an own design input unless Keyloop confirms otherwise. |
+| 2 | Are the WBS statuses accurate? The repository WBS and Plan v5 workbook disagree for 16 task statuses. | Confirm the repository catalogue statuses; do not silently synchronize either source. |
+| 3 | Keep the action dialog or adopt the inline editor (CR-31)? | Keep the dialog (C-30). |
+| 4 | Persist page, page size and sort preferences (CR-21)? | Persist saved actions only (D34/C-23). |
+| 5 | Use one 7-day early-warning window or retain the mockup's day-80 threshold? (OQ-15) | Use one informational window for days 84-90. |
+| 6 | Use URL parameters or a dev-only panel for reviewer switches, and when should sample actions be seeded? | Use URL parameters and seed actions only in demo mode (D39). |
+| 7 | Approve the proposed CR tiers? | Keep the Plan v5 Must/Should/Nice tiers, subject to the Core UX gate. |
+
 ### Exit Criteria
 
 - Every CR item has a disposition (Adopt, Adopt gated, Defer or Not built).

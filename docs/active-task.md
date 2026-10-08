@@ -37,8 +37,20 @@ Triage every change-request item, align Requirements Baseline v4 and Plan v5, an
 - OQ-14 remains open: who raised the CR and whether it is a Keyloop requirement or own design input.
 - OQ-15 to OQ-18 remain open; no open question is answered by this task.
 - D30-D40 are Proposed only.
-- Existing WBS task statuses are preserved even where they differ from Plan v5.
+- Preserve the repository WBS statuses; do not synchronize them to the Plan v5 workbook without owner confirmation.
 - No application, test, configuration or dependency change is in scope.
+
+## Owner decisions still required
+
+Plan v5 lists seven recommendations for owner confirmation; none is resolved by this task:
+
+1. CR provenance and whether it represents a Keyloop requirement or an own design input (OQ-14).
+2. Whether the repository's WBS statuses or the Plan v5 workbook's statuses are authoritative; 16 task statuses differ.
+3. Whether to retain the action dialog or use the inline editor (CR-31; proposed: retain the dialog).
+4. Whether to persist page, page size and sort (CR-21; proposed: persist saved actions only under D34/C-23).
+5. Whether to use one seven-day early-warning window or also retain the mockup's day-80 threshold (OQ-15; proposed: days 84-90 only).
+6. How reviewer switches are exposed and when sample actions are seeded (D39; proposed: URL parameters and demo mode only).
+7. Whether to approve the proposed Must/Should/Nice CR tiers.
 
 ## Relevant design components
 
@@ -74,9 +86,9 @@ Triage every change-request item, align Requirements Baseline v4 and Plan v5, an
 
 ## Known conflicts and gaps
 
-- Current decision register has D-001 to D-005 only; Plan v5 refers to D19 and D27, so their annotations cannot be applied without inventing absent historical entries.
-- Current WBS contains 38 tasks and its existing statuses differ from Plan v5; preserve those statuses and report the discrepancy.
-- Current requirements baseline has no DoD Example section; do not synthesize example content.
+- Plan v5 refers to legacy D19 and D27, but the register has D-001 to D-005 and D30-D40; do not invent missing D19/D27 records.
+- The repository WBS and Plan v5 each contain the same 59 task IDs and total 47 planned hours, but 16 statuses differ: 2.4, 6.3, 3.2, 4.3, 5.1, 4.11, 4.2, 3.1, 3.3, 4.1, 4.4, 4.5, 4.7, 4.8, 4.6 and 4.10. Preserve repository statuses pending owner review.
+- The v4 workbook includes a DoD Example sheet that is not present in the Markdown baseline; this CR task does not recreate or revise that unrelated example content.
 - Existing system design, architecture and project context contain CR-related gaps; report them without editing those files.
 
 ## Exit criteria
@@ -89,7 +101,7 @@ Triage every change-request item, align Requirements Baseline v4 and Plan v5, an
 
 ## Verification commands
 
-Documentation checks and Git status/diff inspection only. No tests, lint or build are required for this documentation-only task.
+Focused CR-triage consistency checks, `npm test`, `npm run lint`, `npm run build`, and Git status/diff inspection. No test files are required for this documentation-only task.
 
 ## Human-only completion
 
