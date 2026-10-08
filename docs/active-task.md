@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 4.10
-- Name: Implement Minimum Observability
-- Workstream: UI Implementation
+- WBS ID: 5.5
+- Name: Accessibility and Responsive Review
+- Workstream: Testing
 - Priority: Should
 - Status: Complete
-- Planned effort: 0.50 hour
+- Planned effort: 0.25 hour
 
 ## Objective
 
-Add assessment-level service-call logging with correlation IDs and a React error boundary.
+Review the existing dashboard for labels, keyboard access, visible focus, and common laptop-width layout without adding unrelated features.
 
 ## Authoritative inputs
 
@@ -26,65 +26,72 @@ Add assessment-level service-call logging with correlation IDs and a React error
 - `docs/traceability.md`
 - `docs/active-task.md`
 
-## Linked design choice
+## Linked acceptance criteria
 
-- C-11: A logging wrapper, error boundary, and service-call correlation IDs are Should-level assessment work; REC-06 remains Not Applied.
+- No requirement IDs are linked directly to WBS 5.5.
+- The WBS review criteria are labels, keyboard access, visible focus, and common laptop-width layout.
 
 ## Approved assumptions and design choices used
 
-- Wrap the existing mock `InventoryService` at the application composition root without changing its contract or behavior.
-- Generate a unique ID per service call and include it in structured start/success/failure console log details.
-- Log and rethrow service failures; do not convert failures into success-shaped results.
-- Catch React render errors at the application boundary, log the error, and display an accessible fallback.
-- This is demonstration observability only; it does not add production telemetry, metrics, or tracing infrastructure.
-- Copilot stops before staging, committing, or pushing.
+- Review existing behavior; do not expand product scope.
+- Keep any correction limited to a verified issue in the reviewed UI.
+- Do not change requirements, system design, or the service boundary.
+- Do not stage, commit, or push.
 
 ## Relevant architecture
 
-`main.tsx` composes the mock service with a logging decorator and wraps the dashboard in `AppErrorBoundary`. `InventoryService` remains the UI contract; logger and correlation ID generation are injected into the wrapper for testability.
+Review the existing dashboard header, inventory filters and summary, inventory table, and proposed-action form. Keep their current React presentation and service-backed behavior unchanged.
 
 ## In scope
 
-- Add a typed logger and service logging decorator.
-- Generate a per-call correlation ID for each mock service operation.
-- Log successful and failed calls with operation name and correlation ID; preserve original errors.
-- Add an application-level React error boundary with a fallback message.
-- Add tests for correlated success/failure logs and render-error capture.
-- Update system design, README, active-task snapshot, traceability, and factual AI collaboration log.
+- Inspect accessible names and labels for interactive controls.
+- Exercise keyboard access to the dashboard and proposed-action form.
+- Check that keyboard focus is visible.
+- Review layout at common laptop widths and confirm narrow table overflow is contained.
 
 ## Explicitly out of scope
 
-- Production observability vendor, remote log shipping, metrics, tracing, or dashboards.
-- Changing the inventory service contract or mock behavior.
-- Applying REC-06 or introducing features beyond the WBS exit criteria.
+- New product features or unrelated refactoring.
+- A complete WCAG conformance audit or assistive-technology certification.
+- Changing approved requirements, architecture, or WBS scope.
 - Staging, committing, or pushing.
 
-## Expected files to inspect or change
+## Files inspected
 
-- `src/observability/logger.ts`
-- `src/services/logging-inventory-service.ts`
-- `src/services/logging-inventory-service.test.ts`
-- `src/components/AppErrorBoundary.tsx`
-- `src/components/AppErrorBoundary.test.tsx`
-- `src/main.tsx`
+- `src/App.tsx`
 - `src/App.css`
-- `docs/system-design.md`
-- `README.md`
-- `docs/active-task.md`
-- `docs/traceability.md`
-- `docs/ai/collaboration-log.md`
+- `src/index.css`
+- `src/components/InventoryFilters.tsx`
+- `src/components/InventoryFilters.css`
+- `src/components/InventorySummary.tsx`
+- `src/components/InventorySummary.css`
+- `src/components/InventoryTable.tsx`
+- `src/components/InventoryTable.css`
+- `src/components/ProposedActionForm.tsx`
+- `src/components/ProposedActionForm.css`
+
+## Tests to add or update
+
+- None anticipated for this review-only task.
+
+## Review results
+
+- Labels: Passed. Filter and action-form controls have associated labels; dashboard regions and the inventory table expose descriptive accessible names.
+- Keyboard access: Passed. Native controls are reachable by Tab; Enter on a row's action button opens its form, and Tab reaches the labeled Action control.
+- Visible focus: Passed. Keyboard-focused controls display a 3px outline from the shared `:focus-visible` rule.
+- Common laptop-width layout: Passed at 1366px and 1024px with no document-level horizontal overflow. At 768px the table scrolls inside its overflow container without widening the page.
+- No UI defects requiring a scoped correction were identified.
 
 ## Exit criteria
 
-- A logging wrapper surrounds mock service calls.
-- Each service call has a correlation ID in its log records.
-- An application-level error boundary logs render errors and displays a fallback.
-- Focused and complete tests, lint, and production build pass.
+- Labels reviewed.
+- Keyboard access reviewed.
+- Visible focus reviewed.
+- Common laptop-width layout reviewed.
 
 ## Verification commands
 
 ```bash
-npm test -- --pool=threads --maxWorkers=1 src/services/logging-inventory-service.test.ts src/components/AppErrorBoundary.test.tsx
 npm test -- --pool=threads --maxWorkers=1
 npm run lint
 npm run build
@@ -95,4 +102,4 @@ git diff
 
 ## Human-only completion
 
-The repository owner reviews the complete diff, then stages, commits, and pushes accepted changes. Copilot must stop before those operations.
+The repository owner reviews the complete diff and decides whether to stage, commit, or push.
