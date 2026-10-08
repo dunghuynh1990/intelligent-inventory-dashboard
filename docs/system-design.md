@@ -36,6 +36,30 @@ Mock implementation and fixture data
 - Use semantic HTML and accessible controls; preserve keyboard support and responsive layouts.
 - Keep styling consistent with existing project conventions and avoid adding a UI library without an approved requirement.
 
+### Wireframe-aligned assessment component structure
+
+The initial architecture's React UI responsibilities are reconciled with the [low-fidelity dashboard wireframe](./wireframes/intelligent-inventory-dashboard.svg) as this presentation-level component list:
+
+| Component | Responsibility |
+|---|---|
+| `DashboardPage` | Own dashboard-local view state, load/refresh orchestration, and compose the dashboard sections. |
+| `DashboardHeader` | Show the dashboard heading, last-refreshed time, and manual refresh control. |
+| `InventorySummary` | Present total vehicles, aging stock, and aging vehicles with an action. The total-vehicle card is Should-level and may be omitted if behind. |
+| `InventoryFilters` | Present search, make, model, age-band, aging-only, and reset controls; receive values and callbacks from the page. |
+| `InventoryTable` | Present vehicle rows and required stock fields; delegate row-specific content to `VehicleRow`. |
+| `VehicleRow` | Present one vehicle's fields, current action, and row-level action entry point when eligible. |
+| `AgingBadge` | Show the textual `Aging` indicator for aging rows; color is supplemental only. |
+| `ProposedActionForm` | Present action and optional note inputs for an eligible vehicle and report save events to the page. |
+
+The page owns the minimal shared filter, inventory, refresh, and selected-action-form state. Filtering and aging calculations remain in pure core functions; inventory retrieval and updates remain behind `InventoryService`. This structure does not require a custom-hook layer or global-state library.
+
+### Wireframe reconciliation notes for WBS 6.4
+
+- The wireframe now includes the C-14 summary cards and the AC-R1-09 Reset filters control; the total-vehicle card remains Should-level.
+- The action form is shown as a conceptual expanded interaction for an aging row; final action values remain unresolved under OQ-07.
+- Pagination is not included because it is not in the approved assessment requirements.
+- Forced-failure and load-scenario controls are not part of the dashboard component list; forced failure remains an adapter test/demo configuration.
+
 ## Initial Non-Functional Strategy
 
 These are initial design directions for the assessment, not measured service-level objectives or claims about implemented production capabilities.
