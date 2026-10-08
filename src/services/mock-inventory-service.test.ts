@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InventoryService } from './inventory-service'
 import { MockInventoryService } from './mock-inventory-service'
 import { generateMockVehicles } from './mock-vehicle-data'
+import { classifyEntryDateIssue } from '../core/aging'
 
 const referenceDate = new Date(2024, 5, 1, 12)
 
@@ -47,6 +48,43 @@ describe('MockInventoryService', () => {
     expect(vehicles.every(({ currentAction }) => currentAction === null)).toBe(true)
   })
 
+  it('generates deterministic 17-character VINs without I, O, or Q', () => {
+    const vehicles = generateMockVehicles(referenceDate)
+    const repeatedVehicles = generateMockVehicles(referenceDate)
+    const validVin = /^[ABCDEFGHJKLMNPRSTUVWXYZ0-9]{17}$/
+
+    expect(vehicles.map(({ vin }) => vin)).toEqual(repeatedVehicles.map(({ vin }) => vin))
+    expect(vehicles.every(({ vin }) => validVin.test(vin))).toBe(true)
+  })
+
+  it('generates one example of each bad entry date and preserves the age boundaries', () => {
+    const vehicles = generateMockVehicles(referenceDate)
+    const issues = vehicles
+      .map(({ stockEntryDate }) => classifyEntryDateIssue(stockEntryDate, referenceDate))
+      .filter((issue) => issue !== null)
+
+    expect(issues).toEqual([
+      'Missing entry date',
+      'Invalid entry date',
+      'Future entry date',
+    ])
+    expect(vehicles.slice(0, 3).map(({ daysInStock, isAging }) => [daysInStock, isAging])).toEqual([
+      [89, false],
+      [90, false],
+      [91, true],
+    ])
+    expect(vehicles.slice(3, 6).map(({ stockEntryDate, daysInStock, isAging, ageBand }) => [
+      stockEntryDate,
+      daysInStock,
+      isAging,
+      ageBand,
+    ])).toEqual([
+      [null, null, false, null],
+      ['not-a-date', null, false, null],
+      ['2024-06-02', null, false, null],
+    ])
+  })
+
   it('keeps generated boundary records relative to each injected reference date', async () => {
     const service = new MockInventoryService({
       referenceDate: new Date(2024, 5, 2),
@@ -58,17 +96,26 @@ describe('MockInventoryService', () => {
     expect(vehicles.slice(0, 3).map(({ daysInStock }) => daysInStock)).toEqual([89, 90, 91])
   })
 
-  it('persists only the current action and optional note between service instances', async () => {
+  it('persists the current action, optional note, and save timestamp between service instances', async () => {
+    vi.useFakeTimers()
+    const saveTime = new Date('2024-06-01T12:00:00.000Z')
+    vi.setSystemTime(saveTime)
     const firstService = new MockInventoryService({ referenceDate, delayMs: 0 })
     const action = { action: 'Price Reduction Planned', note: 'Review this week' }
+    const save = firstService.updateVehicleAction('vehicle-001', action)
 
-    await firstService.updateVehicleAction('vehicle-001', action)
+    await vi.advanceTimersByTimeAsync(0)
+    await save
 
     const secondService = new MockInventoryService({ referenceDate, delayMs: 0 })
-    const vehicles = await secondService.getVehicles()
-    expect(vehicles[0].currentAction).toEqual(action)
+    const getVehicles = secondService.getVehicles()
+    await vi.advanceTimersByTimeAsync(0)
+    const vehicles = await getVehicles
+    const savedAction = { ...action, loggedAt: saveTime.toISOString() }
+
+    expect(vehicles[0].currentAction).toEqual(savedAction)
     expect(JSON.parse(window.localStorage.getItem('intelligent-inventory-dashboard:vehicle-actions') ?? '{}')).toEqual({
-      'vehicle-001': action,
+      'vehicle-001': savedAction,
     })
   })
 

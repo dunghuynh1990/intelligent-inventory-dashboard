@@ -10,6 +10,7 @@ const sampleVehicles: Vehicle[] = [
   {
     vehicleId: 'vehicle-001',
     stockNumber: 'STK-0001',
+    vin: '1HGCM82633A004351',
     make: 'Ford',
     model: 'Escape',
     stockEntryDate: '2026-07-09',
@@ -21,6 +22,7 @@ const sampleVehicles: Vehicle[] = [
   {
     vehicleId: 'vehicle-002',
     stockNumber: 'STK-0002',
+    vin: '1HGCM82633A004352',
     make: 'Honda',
     model: 'Civic',
     stockEntryDate: '2026-07-10',
@@ -32,6 +34,7 @@ const sampleVehicles: Vehicle[] = [
   {
     vehicleId: 'vehicle-003',
     stockNumber: 'STK-0003',
+    vin: '1HGCM82633A004353',
     make: 'Toyota',
     model: 'Corolla',
     stockEntryDate: 'invalid-date',
@@ -43,6 +46,7 @@ const sampleVehicles: Vehicle[] = [
   {
     vehicleId: 'vehicle-004',
     stockNumber: 'STK-0004',
+    vin: '1HGCM82633A004354',
     make: 'Toyota',
     model: 'Corolla',
     stockEntryDate: '2026-07-09',
@@ -54,6 +58,7 @@ const sampleVehicles: Vehicle[] = [
   {
     vehicleId: 'vehicle-005',
     stockNumber: 'STK-0005',
+    vin: '1HGCM82633A004355',
     make: 'Toyota',
     model: 'Camry',
     stockEntryDate: '2026-09-09',

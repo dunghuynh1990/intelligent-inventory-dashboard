@@ -4,6 +4,9 @@ import type { Vehicle } from '../types/vehicle'
 const vehicleCount = 200
 const boundaryAges = [89, 90, 91]
 const defaultSeed = 20261008
+const vinSeed = defaultSeed ^ 0x9e3779b9
+const badDateStartIndex = boundaryAges.length
+const vinCharacters = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789'
 
 const makes = [
   { make: 'Honda', models: ['Accord', 'Civic', 'CR-V', 'Pilot'] },
@@ -20,6 +23,7 @@ export function generateMockVehicles(referenceDate: Date): Vehicle[] {
   }
 
   const random = createSeededRandom(defaultSeed)
+  const vinRandom = createSeededRandom(vinSeed)
   const today = new Date(
     referenceDate.getFullYear(),
     referenceDate.getMonth(),
@@ -29,12 +33,14 @@ export function generateMockVehicles(referenceDate: Date): Vehicle[] {
   return Array.from({ length: vehicleCount }, (_, index) => {
     const makeData = makes[random.int(makes.length)]
     const ageInDays = boundaryAges[index] ?? random.int(181)
-    const stockEntryDate = localDateString(addCalendarDays(today, -ageInDays))
+    const generatedEntryDate = localDateString(addCalendarDays(today, -ageInDays))
+    const stockEntryDate = getStockEntryDate(index, generatedEntryDate, today)
     const vehicleId = `vehicle-${String(index + 1).padStart(3, '0')}`
 
     return {
       vehicleId,
       stockNumber: `STK-${String(index + 1).padStart(4, '0')}`,
+      vin: generateVin(vinRandom),
       make: makeData.make,
       model: makeData.models[random.int(makeData.models.length)],
       stockEntryDate,
@@ -42,6 +48,30 @@ export function generateMockVehicles(referenceDate: Date): Vehicle[] {
       ...calculateVehicleAge(stockEntryDate, referenceDate),
     }
   })
+}
+
+function getStockEntryDate(
+  index: number,
+  generatedEntryDate: string,
+  today: Date,
+): string | null {
+  switch (index - badDateStartIndex) {
+    case 0:
+      return null
+    case 1:
+      return 'not-a-date'
+    case 2:
+      return localDateString(addCalendarDays(today, 1))
+    default:
+      return generatedEntryDate
+  }
+}
+
+function generateVin(random: { int: (maxExclusive: number) => number }): string {
+  return Array.from(
+    { length: 17 },
+    () => vinCharacters[random.int(vinCharacters.length)],
+  ).join('')
 }
 
 function addCalendarDays(date: Date, days: number): Date {

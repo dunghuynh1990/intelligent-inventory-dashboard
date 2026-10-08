@@ -27,10 +27,11 @@ function entryDateDaysBefore(days: number): string {
   return localDateString(new Date(2024, 5, 1 - days))
 }
 
-const filterTestVehicles: Array<Vehicle & { vin?: string }> = [
+const filterTestVehicles: Vehicle[] = [
   {
     vehicleId: 'vehicle-003',
     stockNumber: 'STK-CAMRY',
+    vin: '1HGCM82633C004353',
     make: 'Toyota',
     model: 'Camry',
     stockEntryDate: entryDateDaysBefore(30),
@@ -42,6 +43,7 @@ const filterTestVehicles: Array<Vehicle & { vin?: string }> = [
   {
     vehicleId: 'vehicle-001',
     stockNumber: 'STK-COROLLA',
+    vin: '1HGCM82633B004351',
     make: 'Toyota',
     model: 'Corolla',
     stockEntryDate: entryDateDaysBefore(91),
@@ -53,6 +55,7 @@ const filterTestVehicles: Array<Vehicle & { vin?: string }> = [
   {
     vehicleId: 'vehicle-002',
     stockNumber: 'STK-CIVIC',
+    vin: '1HGCM82633A004352',
     make: 'Honda',
     model: 'Civic',
     stockEntryDate: entryDateDaysBefore(31),
@@ -60,11 +63,11 @@ const filterTestVehicles: Array<Vehicle & { vin?: string }> = [
     daysInStock: 31,
     isAging: false,
     ageBand: '31-60',
-    vin: '1HGCM82633A004352',
   },
   {
     vehicleId: 'vehicle-004',
     stockNumber: 'STK-UNKNOWN',
+    vin: '1HGCM82633D004354',
     make: 'Toyota',
     model: 'Corolla',
     stockEntryDate: 'invalid',

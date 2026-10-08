@@ -57,7 +57,7 @@ export class MockInventoryService implements InventoryService {
     }
 
     const actions = this.readStoredActions()
-    actions[vehicleId] = { ...action }
+    actions[vehicleId] = { ...action, loggedAt: new Date().toISOString() }
     this.storage.setItem(actionStorageKey, JSON.stringify(actions))
   }
 
@@ -120,5 +120,8 @@ function isVehicleAction(value: unknown): value is VehicleAction {
   if (!isRecord(value) || typeof value.action !== 'string' || !value.action.trim()) {
     return false
   }
-  return value.note === undefined || typeof value.note === 'string'
+  return (
+    (value.note === undefined || typeof value.note === 'string') &&
+    (value.loggedAt === undefined || typeof value.loggedAt === 'string')
+  )
 }

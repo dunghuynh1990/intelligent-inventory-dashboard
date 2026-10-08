@@ -42,8 +42,15 @@ const millisecondsPerDay = 24 * 60 * 60 * 1000
 const millisecondsPerMinute = 60 * 1000
 const isoCalendarDate = /^(\d{4})-(\d{2})-(\d{2})(?:$|[Tt ])/
 
-export function calculateDaysInStock(stockEntryDate: string, referenceDate: Date): number | null {
+export function calculateDaysInStock(
+  stockEntryDate: string | null | undefined,
+  referenceDate: Date,
+): number | null {
   const referenceDay = getReferenceCalendarDay(referenceDate)
+  if (stockEntryDate == null) {
+    return null
+  }
+
   const entryDay = getEntryCalendarDay(stockEntryDate)
   if (entryDay === null) {
     return null
@@ -92,7 +99,7 @@ export function getAgeBand(daysInStock: number | null): AgeBand | null {
 }
 
 export function calculateVehicleAge(
-  stockEntryDate: string,
+  stockEntryDate: string | null | undefined,
   referenceDate: Date,
 ): CalculatedVehicleData {
   const daysInStock = calculateDaysInStock(stockEntryDate, referenceDate)
@@ -105,7 +112,7 @@ export function calculateVehicleAge(
 }
 
 export function filterVehicles(
-  vehicles: Array<Vehicle & { vin?: string }>,
+  vehicles: Vehicle[],
   filters: InventoryFilterCriteria,
 ): Vehicle[] {
   const searchText = filters.searchText.trim().toLowerCase()
