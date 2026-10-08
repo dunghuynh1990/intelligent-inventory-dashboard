@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InventoryService } from './inventory-service'
-import { MockInventoryService } from './mock-inventory-service'
+import { getMockDataAgeMinutes, MockInventoryService } from './mock-inventory-service'
 import { generateMockVehicles } from './mock-vehicle-data'
 import { classifyEntryDateIssue } from '../core/aging'
 
@@ -46,6 +46,7 @@ describe('MockInventoryService', () => {
       [91, true],
     ])
     expect(vehicles.every(({ currentAction }) => currentAction === null)).toBe(true)
+    expect(window.localStorage.getItem('intelligent-inventory-dashboard:vehicle-actions')).toBeNull()
   })
 
   it('generates deterministic 17-character VINs without I, O, or Q', () => {
@@ -179,6 +180,55 @@ describe('MockInventoryService', () => {
     await expect(service.getVehicles()).rejects.toThrow(
       'MockInventoryService forced failure is enabled',
     )
+  })
+
+  it('returns an empty inventory when the URL switch is enabled', async () => {
+    window.history.replaceState({}, '', '/?emptyInventory=true&demo=true')
+    const service = new MockInventoryService({ referenceDate, delayMs: 0 })
+
+    await expect(service.getVehicles()).resolves.toEqual([])
+    expect(window.localStorage.getItem('intelligent-inventory-dashboard:vehicle-actions')).toBeNull()
+  })
+
+  it('seeds sample actions only in demo mode and keeps them on aging vehicles', async () => {
+    window.history.replaceState({}, '', '/?demo=true')
+    const service = new MockInventoryService({ referenceDate, delayMs: 0 })
+    const vehicles = await service.getVehicles()
+    const actionedVehicles = vehicles.filter(({ currentAction }) => currentAction !== null)
+
+    expect(actionedVehicles).toHaveLength(3)
+    expect(actionedVehicles.every(({ isAging, currentAction }) =>
+      isAging &&
+      currentAction?.action === 'Price Reduction Planned' &&
+      currentAction.note === 'Demo sample action' &&
+      currentAction.loggedAt !== undefined,
+    )).toBe(true)
+  })
+
+  it('does not overwrite existing actions when demo mode is enabled', async () => {
+    window.history.replaceState({}, '', '/?demo=true')
+    const existingAction = {
+      action: 'Price Reduction Planned',
+      note: 'Saved before demo mode',
+      loggedAt: '2024-05-01T12:00:00.000Z',
+    }
+    window.localStorage.setItem(
+      'intelligent-inventory-dashboard:vehicle-actions',
+      JSON.stringify({ 'vehicle-003': existingAction }),
+    )
+    const service = new MockInventoryService({ referenceDate, delayMs: 0 })
+    const vehicles = await service.getVehicles()
+
+    expect(vehicles[2].currentAction).toEqual(existingAction)
+    expect(vehicles.filter(({ currentAction }) => currentAction !== null)).toHaveLength(1)
+  })
+
+  it('parses the optional mock data-age scenario and rejects invalid ages', () => {
+    expect(getMockDataAgeMinutes('')).toBe(0)
+    expect(getMockDataAgeMinutes('?dataAgeMinutes=25')).toBe(25)
+    expect(() => getMockDataAgeMinutes('?dataAgeMinutes=-1')).toThrow(RangeError)
+    expect(() => getMockDataAgeMinutes('?dataAgeMinutes=invalid')).toThrow(RangeError)
+    expect(() => getMockDataAgeMinutes('?dataAgeMinutes=1e308')).toThrow(RangeError)
   })
 
   it('generates the same seeded inventory for the same reference date', () => {

@@ -1,93 +1,82 @@
 # Active WBS Task
 
-> Generated from `docs/wbs.md`, `docs/requirements-baseline.md`, `docs/decisions/decision-register.md`, and `docs/traceability.md`. The repository owner explicitly authorized implementation of WBS 4.13 only while the linked CR dispositions remain proposed.
+> Generated from `docs/wbs.md`, `docs/requirements-baseline.md`, `docs/decisions/decision-register.md`, and `docs/traceability.md`. The repository owner authorized WBS 4.14 only despite broader CR dispositions remaining proposed.
 
 ## Task
 
-- WBS ID: 4.13
-- Name: Extend Mock Adapter for CR
+- WBS ID: 4.14
+- Name: Add Reviewer Switches and Demo Mode
 - Workstream: Data & Service
 - Priority: Should
 - Status: Not Started
-- Planned effort: 0.75 hour
-- CR Ref: CR-01, CR-06, CR-07, CR-28
+- Planned effort: 0.50 hour
+- CR Ref: CR-22, CR-23
 
 ## Objective
 
-Extend deterministic mock vehicles with fake VINs and one missing, invalid, and future stock-entry date; preserve the existing 89/90/91-day fixtures; and persist a save timestamp with each newly saved current action without changing the `InventoryService` signatures.
+Allow reviewers to select forced-failure, empty-inventory, and simulated data-age scenarios without code changes; seed representative actions only when demo mode is explicitly enabled; document the URL controls without adding product UI.
 
 ## Linked acceptance criteria
 
-- AC-R1-12: Generated VIN values contain 17 characters for display.
-- AC-R2-14: Entry-date issue classification distinguishes missing, invalid, future, and valid dates.
-- AC-R2-15: Bad-date vehicle data supports the existing unknown-age and not-aging behavior; displaying the issue is a later UI task.
-- AC-R2-16: Generated mock data contains one missing, one invalid, and one future entry date while retaining the 89/90/91-day records.
-- AC-R3-07: Newly saved actions include their logged time; rendering relative-day labels is outside this task.
+- AC-R4-05 (Manual): A reviewer can force the mock service error state without changing code.
+- AC-R4-07 (Manual): A reviewer can select empty inventory or 25-minute data age without changing code and see the corresponding scenario.
 
 ## Assumptions and decisions used
 
-- A-12, A-20, A-21, and D38 remain proposed in the baseline. The repository owner authorized only the WBS 4.13 implementation scope; this does not approve other proposed CR work.
-- Generated VINs are opaque fake values produced from a fixed seed using an alphabet that excludes I, O, and Q.
-- A missing generated date is represented as `null`; the invalid example is `not-a-date`; the future example is one local calendar day after the injected reference date.
-- Newly saved `loggedAt` values use an ISO 8601 UTC timestamp generated at save time. Existing stored actions without a timestamp remain readable.
-- Existing 89/90/91-day records retain their relative dates and aging classifications.
+- C-26 and D39 remain proposed. The repository owner explicitly authorized WBS 4.14 only; this does not approve other proposed CR items.
+- Reviewer controls use URL parameters: `forceFailure=true`, `emptyInventory=true`, `dataAgeMinutes=<minutes>`, and `demo=true`.
+- Sample actions are seeded only when `demo=true`, the action store is absent, and empty-inventory mode is not selected; existing persisted actions are never overwritten.
+- Demo seed records use the action already supported by the current assessment UI. The fixed 15/60-minute freshness levels and amber/warning presentation remain for WBS 4.20.
 
 ## Relevant design components
 
-- `src/types/vehicle.ts`: vehicle identity, nullable stock-entry date, and current-action shape.
-- `src/core/aging.ts`: existing pure date-age behavior, extended to accept a missing date.
-- `src/services/mock-vehicle-data.ts`: deterministic vehicle and VIN generation.
-- `src/services/mock-inventory-service.ts`: current-action local persistence.
-- `src/services/inventory-service.ts`: unchanged service contract.
+- `src/services/mock-inventory-service.ts`: mock-layer scenario switches and optional sample-action seeding.
+- `src/main.tsx`: pass the simulated data-age clock to the existing dashboard.
+- `src/App.tsx`: existing injected clock controls the visible last-refreshed timestamp.
+- `README.md`: reviewer instructions.
 
 ## In scope
 
-- Generate deterministic 17-character fake VINs without I, O, or Q.
-- Generate exactly one missing, one invalid, and one future stock-entry date.
-- Preserve the first three 89/90/91-day boundary vehicles and their aging behavior.
-- Persist `loggedAt` for every action newly saved through the mock adapter.
-- Add or update adapter/core tests and type fixtures required by these model changes.
-- Refresh this execution snapshot and record factual work in the collaboration log.
+- Add query-controlled empty inventory and demo action seeding while preserving forced-failure behavior.
+- Simulate a selected last-refreshed age from the URL.
+- Keep default app/test state unseeded.
+- Document and test scenario switches, demo-only seeding, and preservation of existing action data.
+- Update this execution snapshot and append factual collaboration-log evidence.
 
 ## Explicitly out of scope
 
-- VIN rendering, VIN search UI, data-issue UI, or relative logged-time labels.
-- Changes to `InventoryService` method signatures or production persistence.
-- Reviewer switches, demo seeding, unrelated CR work, and WBS 4.14 or later tasks.
-- Requirements, system-design, decision-register, and WBS catalogue changes.
-- Changing WBS or traceability status, staging, committing, or pushing.
+- A product demo bar, dev-only panel, requirement-ID overlay, or production demo/backend behavior.
+- Implementing the amber freshness indicator or stale-data banner assigned to later freshness UI work.
+- Changes to the `InventoryService` interface, unrelated UI, requirements, design, decision register, or WBS catalogue.
+- Changing WBS status, staging, committing, or pushing.
 
 ## Files expected to change
 
-- `src/types/vehicle.ts`
-- `src/core/aging.ts`
-- `src/services/mock-vehicle-data.ts`
 - `src/services/mock-inventory-service.ts`
 - `src/services/mock-inventory-service.test.ts`
-- `src/core/aging.test.ts` and `src/App.test.tsx` for required typed fixture updates
+- `src/main.tsx`
+- `README.md`
 - `docs/active-task.md`
 - `docs/ai/collaboration-log.md`
 
 ## Tests to add or update
 
-- Verify deterministic VIN output, exact 17-character length, and exclusion of I, O, and Q.
-- Verify exactly one generated example per missing/invalid/future issue and that each has unknown age and is not aging.
-- Verify 89/90/91-day boundary records remain unchanged and relative to the injected reference date.
-- Freeze time and verify the timestamp is persisted and returned with a saved action across service instances.
-- Run focused tests, the complete suite, lint, and production build.
+- Verify empty-inventory mode returns no vehicles while default mode remains populated and unseeded.
+- Verify demo mode seeds sample actions on aging vehicles only and does not overwrite existing actions.
+- Verify the data-age URL value is parsed and invalid values fail explicitly.
+- Re-run existing forced-failure URL coverage.
+- Run focused and complete tests, lint, and the production build.
 
 ## Conflicts and gaps
 
-- The baseline marks the linked CR dispositions and assumptions as proposed and pending owner confirmation. Before implementation, the repository owner explicitly authorized WBS 4.13 only. This authorization does not resolve the broader CR disposition question.
-- AC-R2-15 and the display portions of AC-R1-12/AC-R3-07 require later UI work; this task adds the supporting mock data only.
-- The prior active-task snapshot was WBS 5.6 and is replaced by this execution snapshot without changing the WBS catalogue or task status.
+- AC-R4-07 is proposed and D39/C-26 remain proposed. The repository owner authorized this WBS only.
+- The app currently displays an absolute last-refreshed time but has no freshness-level UI. The data-age switch will change that timestamp; the amber indicator remains deferred to later freshness implementation and must not be claimed as complete here.
+- The previous active-task snapshot covered WBS 4.13; it is replaced without changing the WBS catalogue or task status.
 
 ## Exit criteria
 
-- Generated VINs meet the deterministic length/alphabet rules.
-- Exactly one missing, invalid, and future date example is generated and classified as unusable.
-- Existing 89/90/91-day generated records remain unchanged.
-- Newly saved mock actions persist an ISO timestamp without altering service signatures.
-- Focused and complete tests, lint, build, and final diff review are reported.
+- Reviewers can select failure, empty inventory, and data-age scenarios with URL parameters.
+- Sample actions appear only in explicit demo mode and do not overwrite existing actions.
+- Tests, lint, build, documentation, and final diff are verified.
 
 Do not stage, commit, or push.

@@ -4,11 +4,14 @@ import type { Vehicle, VehicleAction } from '../types/vehicle'
 
 const actionStorageKey = 'intelligent-inventory-dashboard:vehicle-actions'
 const defaultDelayMs = 250
+const maxDateMilliseconds = 8.64e15
 
 export interface MockInventoryServiceOptions {
   referenceDate?: Date
   delayMs?: number
   forceFailure?: boolean
+  emptyInventory?: boolean
+  demoMode?: boolean
   storage?: Storage
 }
 
@@ -16,6 +19,7 @@ export class MockInventoryService implements InventoryService {
   private readonly vehicles: Vehicle[]
   private readonly delayMs: number
   private readonly forceFailure: boolean
+  private readonly emptyInventory: boolean
   private readonly storageOverride: Storage | undefined
 
   constructor(options: MockInventoryServiceOptions = {}) {
@@ -31,12 +35,21 @@ export class MockInventoryService implements InventoryService {
     this.vehicles = generateMockVehicles(referenceDate)
     this.delayMs = delayMs
     this.forceFailure = options.forceFailure ?? isForcedFailureEnabled()
+    this.emptyInventory = options.emptyInventory ?? isQueryFlagEnabled('emptyInventory')
     this.storageOverride = options.storage
+    const demoMode = options.demoMode ?? isQueryFlagEnabled('demo')
+    if (demoMode && !this.emptyInventory) {
+      this.seedDemoActions()
+    }
   }
 
   async getVehicles(): Promise<Vehicle[]> {
     await this.waitForDelay()
     this.throwIfFailureEnabled()
+
+    if (this.emptyInventory) {
+      return []
+    }
 
     const actions = this.readStoredActions()
     return this.vehicles.map((vehicle) => ({
@@ -94,6 +107,24 @@ export class MockInventoryService implements InventoryService {
     return actions
   }
 
+  private seedDemoActions(): void {
+    const storage = this.storage
+    if (storage.getItem(actionStorageKey) !== null) {
+      return
+    }
+
+    const loggedAt = new Date().toISOString()
+    const actions: Record<string, VehicleAction> = {}
+    for (const vehicle of this.vehicles.filter(({ isAging }) => isAging).slice(0, 3)) {
+      actions[vehicle.vehicleId] = {
+        action: 'Price Reduction Planned',
+        note: 'Demo sample action',
+        loggedAt,
+      }
+    }
+    storage.setItem(actionStorageKey, JSON.stringify(actions))
+  }
+
   private get storage(): Storage {
     if (this.storageOverride) {
       return this.storageOverride
@@ -109,6 +140,33 @@ function isForcedFailureEnabled(): boolean {
   return (
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('forceFailure') === 'true'
+  )
+}
+
+export function getMockDataAgeMinutes(search: string): number {
+  const value = new URLSearchParams(search).get('dataAgeMinutes')
+  if (value === null) {
+    return 0
+  }
+
+  const minutes = Number(value)
+  const milliseconds = minutes * 60 * 1000
+  if (
+    value.trim() === '' ||
+    !Number.isFinite(minutes) ||
+    minutes < 0 ||
+    !Number.isFinite(milliseconds) ||
+    milliseconds > maxDateMilliseconds
+  ) {
+    throw new RangeError('dataAgeMinutes must be a non-negative finite number')
+  }
+  return minutes
+}
+
+function isQueryFlagEnabled(name: string): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get(name) === 'true'
   )
 }
 
