@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 4.11
-- Name: Implement InventoryService Interface
+- WBS ID: 4.2
+- Name: Build Mock Inventory Adapter and Generated Data
 - Workstream: Data & Service
 - Priority: Must
 - Status: Complete
-- Planned effort: 0.25 hour
+- Planned effort: 1.50 hours
 
 ## Objective
 
-Define the typed `InventoryService` contract with vehicle retrieval and current-action update operations, independently of mock data and persistence.
+Implement the assessment mock adapter, deterministic vehicle data, relative stock-entry dates, simulated delay, forced-failure configuration, and current-action local persistence behind `InventoryService`.
 
 ## Authoritative inputs
 
@@ -28,41 +28,54 @@ Define the typed `InventoryService` contract with vehicle retrieval and current-
 
 ## Linked acceptance criteria and design choices
 
-- **AC-R1-01:** the service returns the vehicle inventory for display.
-- **C-03:** UI depends only on `InventoryService(getVehicles, updateVehicleAction)`.
+- **AC-R2-10:** approximately 200 vehicles include at least one each at 89, 90, and 91 days.
+- **AC-R2-11:** injected reference date changes age evaluation.
+- **AC-R3-02:** saved action and note persist across service instances using the same local storage.
+- **AC-R4-01:** simulated delay supports a loading state.
+- **AC-R4-04:** forced retrieval failure rejects the service request for UI error handling.
+- **AC-R4-05:** a reviewer can enable failure without code changes.
+- **C-04:** mock adapter uses local storage, delay, and forced failure.
+- **C-05:** forced failure can be enabled without a code change.
+- **C-06/C-07/C-08:** deterministic data, relative boundary dates, and injected reference date.
+- **C-12/C-15:** in-stock vehicles only; persist current actions and notes keyed by stable vehicle ID.
 
 ## Approved assumptions and design choices used
 
-- `getVehicles` resolves to the existing `Vehicle` domain type.
-- `updateVehicleAction` accepts the stable vehicle ID and a `VehicleAction`, and resolves when the update completes.
-- The interface contains no generated-data, local-storage, or transport details.
-- The existing mock scaffold exposes explicit not-implemented rejections until mock-adapter behavior is delivered by its WBS.
+- Generate 200 vehicles, within the approved approximate demonstration scale.
+- Use a fixed-seed deterministic sequence for non-date fields and relative local-calendar stock dates.
+- `?forceFailure=true` in the browser URL enables forced retrieval and update failures; it is not persisted.
+- A modest default simulated delay is configurable for deterministic fast tests.
+- Persist only the current action and optional note, keyed by vehicle ID, in browser local storage.
 - Copilot stops before staging, committing, or pushing.
 
 ## Relevant architecture
 
-The UI depends on the service interface; the mock adapter implements it in a separate layer. This task defines the contract only and does not implement retrieval, persistence, or action update behavior.
+`MockInventoryService` implements `InventoryService`; fixture generation is isolated from the adapter, aging calculations remain in the pure core module, and persistence stays within the mock adapter. UI orchestration and visible loading/error components remain separate work.
 
 ## In scope
 
-- Define `getVehicles` and `updateVehicleAction` with domain types.
-- Keep the contract independent of generated data and local storage.
-- Adapt the existing count-only placeholder just enough to implement the contract and fail explicitly until its adapter task.
-- Test that the placeholder reports its unimplemented operations rather than returning success-shaped data.
+- Generate deterministic in-stock vehicles with relative entry dates and the required 89/90/91-day records.
+- Calculate derived vehicle age fields using the existing pure core functions and an injectable reference date.
+- Implement vehicle retrieval and current-action updates behind the service contract.
+- Add simulated delay and URL-configurable forced failure.
+- Persist and restore only current actions and notes in local storage.
+- Test determinism, count, date boundaries, persistence, delay, and forced failures.
 
 ## Explicitly out of scope
 
-- Generating vehicles or implementing real mock retrieval.
-- Persistence, simulated delay, or forced-failure behavior.
-- UI integration or changing React components.
+- Dashboard UI, loading/error presentation, retry controls, or manual refresh.
+- Filters, summaries, action eligibility UI, or form validation.
+- Backend, authentication, multi-dealership behavior, or action history.
 - Adding dependencies.
 - Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- `src/services/inventory-service.ts`
+- `src/services/mock-vehicle-data.ts`
 - `src/services/mock-inventory-service.ts`
 - `src/services/mock-inventory-service.test.ts`
+- `src/services/inventory-service.ts`
+- `src/core/aging.ts`
 - `src/types/vehicle.ts`
 - `docs/active-task.md`
 - `docs/traceability.md`
@@ -70,12 +83,12 @@ The UI depends on the service interface; the mock adapter implements it in a sep
 
 ## Exit criteria
 
-- `InventoryService` is defined before adapter behavior.
-- Planned operations include typed `getVehicles` and `updateVehicleAction`.
-- UI code can depend only on this interface.
-- The interface is not coupled to local storage or generated data.
-- The existing placeholder conforms to the interface and reports unimplemented behavior explicitly.
-- Tests, lint, and production build pass.
+- The mock adapter implements `InventoryService`.
+- Approximately 200 deterministic vehicles are generated.
+- Entry dates are relative to an injected reference date and include 89/90/91-day boundaries.
+- Simulated delay and browser-configurable forced failures work.
+- Current actions and notes persist across service instances via local storage.
+- Existing tests, focused adapter tests, lint, and production build pass.
 - Copilot stops before staging, committing, or pushing.
 
 ## Verification commands
