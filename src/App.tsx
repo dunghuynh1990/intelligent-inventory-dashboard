@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import {
   filterVehicles,
+  formatElapsedRefreshTime,
   getAvailableMakes,
   getAvailableModels,
+  getFreshnessLevel,
   getInventorySummary,
   paginateItems,
   type InventoryFilterCriteria,
@@ -101,8 +103,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     initialDashboardState,
   )
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
-  const [actionAgeReferenceTime, setActionAgeReferenceTime] =
-    useState<Date | null>(null)
+  const [currentTime, setCurrentTime] = useState(systemClock)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionSaveConfirmation, setActionSaveConfirmation] = useState(false)
@@ -131,6 +132,9 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     () => getInventorySummary(allVehicles),
     [allVehicles],
   )
+  const freshnessLevel = lastRefreshed
+    ? getFreshnessLevel(lastRefreshed, currentTime)
+    : 'normal'
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -141,7 +145,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
       dispatch({ type: 'inventoryLoaded', vehicles: currentVehicles })
       const refreshedAt = clock()
       setLastRefreshed(refreshedAt)
-      setActionAgeReferenceTime(refreshedAt)
+      setCurrentTime(systemClock())
     } catch (cause: unknown) {
       const message =
         cause instanceof Error ? cause.message : 'An unexpected error occurred.'
@@ -161,7 +165,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
           dispatch({ type: 'inventoryLoaded', vehicles: currentVehicles })
           const refreshedAt = clock()
           setLastRefreshed(refreshedAt)
-          setActionAgeReferenceTime(refreshedAt)
+          setCurrentTime(systemClock())
         }
       })
       .catch((cause: unknown) => {
@@ -182,12 +186,24 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     }
   }, [clock, inventoryService])
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setCurrentTime(systemClock())
+    }, 60_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
   const formattedLastRefreshed = lastRefreshed
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
+    ? new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
       }).format(lastRefreshed)
     : 'Not yet'
+  const formattedElapsedRefreshTime = lastRefreshed
+    ? formatElapsedRefreshTime(lastRefreshed, currentTime)
+    : null
 
   const handleMakeChange = (make: string) => {
     const availableModels = getAvailableModels(allVehicles, make)
@@ -214,7 +230,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
       await inventoryService.updateVehicleAction(vehicleId, action)
       const savedAction = { ...action, loggedAt: actionLoggedAt }
       dispatch({ type: 'vehicleActionChanged', vehicleId, action: savedAction })
-      setActionAgeReferenceTime(loggedAt)
+      setCurrentTime(systemClock())
       setEditingVehicleId(null)
       setActionSaveConfirmation(true)
     } finally {
@@ -230,12 +246,29 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
           <p>Dealership vehicle overview</p>
         </div>
         <div className="dashboard-header__refresh">
-          <div className="dashboard-header__freshness">
-            <span>Last refreshed</span>
+          <div className="dashboard-header__reference-date">
+            <span>Reference date</span>
+            <time dateTime={formatLocalDateISO(currentTime)}>
+              {formatReferenceDate(currentTime)}
+            </time>
+          </div>
+          <div
+            className={`dashboard-header__freshness dashboard-header__freshness--${freshnessLevel}`}
+            data-freshness-level={freshnessLevel}
+            data-has-refresh={lastRefreshed !== null}
+          >
+            <span className="dashboard-header__freshness-label">Last refreshed</span>
             {lastRefreshed ? (
-              <time dateTime={lastRefreshed.toISOString()}>{formattedLastRefreshed}</time>
+              <span className="dashboard-header__freshness-value">
+                <time dateTime={lastRefreshed.toISOString()}>
+                  {formattedLastRefreshed}
+                </time>
+                <span>{formattedElapsedRefreshTime}</span>
+              </span>
             ) : (
-              <span>{formattedLastRefreshed}</span>
+              <span className="dashboard-header__freshness-value">
+                {formattedLastRefreshed}
+              </span>
             )}
           </div>
           <button
@@ -244,7 +277,11 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
             onClick={handleRefresh}
             disabled={isLoading}
           >
-            {isLoading ? 'Refreshing…' : error ? 'Retry' : 'Refresh'}
+            {isLoading
+              ? 'Refreshing…'
+              : freshnessLevel === 'warning'
+                ? 'Refresh now'
+                : 'Refresh'}
           </button>
         </div>
       </header>
@@ -268,14 +305,41 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
             </p>
           )}
           {error && (
-            <p className="inventory-error" role="alert">
+            <div className="inventory-error" role="alert">
               {error}
-            </p>
+              <button
+                className="inventory-error__retry"
+                type="button"
+                onClick={handleRefresh}
+                disabled={isLoading}
+              >
+                Retry
+              </button>
+            </div>
           )}
           {actionSaveConfirmation && (
             <p className="action-save-toast" role="status">
               Action saved
             </p>
+          )}
+          {vehicles !== null && freshnessLevel === 'warning' && (
+            <div
+              className="stale-data-warning"
+              role="status"
+              aria-label="Stale inventory warning"
+            >
+              <span>
+                Inventory data is stale. Last refreshed{' '}
+                {formattedElapsedRefreshTime}.
+              </span>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isLoading}
+              >
+                Refresh now
+              </button>
+            </div>
           )}
           {vehicles !== null && (
             <InventorySummary
@@ -311,9 +375,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                 <InventoryTable
                   vehicles={page.items}
                   searchText={filters.searchText}
-                  actionAgeReferenceTime={
-                    actionAgeReferenceTime ?? lastRefreshed ?? new Date()
-                  }
+                  actionAgeReferenceTime={currentTime}
                   editingVehicleId={editingVehicleId}
                   isSaving={savingVehicleId !== null}
                   onEditAction={(vehicle) => setEditingVehicleId(vehicle.vehicleId)}
@@ -338,6 +400,23 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
       </main>
     </div>
   )
+}
+
+const monthNames = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+function formatReferenceDate(date: Date): string {
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${day}-${monthNames[date.getMonth()]}-${date.getFullYear()}`
+}
+
+function formatLocalDateISO(date: Date): string {
+  const year = date.getFullYear().toString().padStart(4, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export default App

@@ -197,6 +197,29 @@ export function getFreshnessLevel(lastRefreshedAt: Date, now: Date): FreshnessLe
   return 'normal'
 }
 
+export function formatElapsedRefreshTime(
+  lastRefreshedAt: Date,
+  now: Date,
+): string {
+  const lastRefreshedTime = lastRefreshedAt.getTime()
+  const currentTime = now.getTime()
+  if (!Number.isFinite(lastRefreshedTime)) {
+    throw new RangeError('lastRefreshedAt must be a valid date')
+  }
+  if (!Number.isFinite(currentTime)) {
+    throw new RangeError('now must be a valid date')
+  }
+
+  const elapsedMinutes = Math.max(
+    0,
+    Math.floor((currentTime - lastRefreshedTime) / millisecondsPerMinute),
+  )
+  if (elapsedMinutes === 0) {
+    return 'Just now'
+  }
+  return `${elapsedMinutes} min ago`
+}
+
 export function formatActionLoggedAge(
   loggedAt: string | undefined,
   now: Date,

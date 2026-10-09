@@ -3,6 +3,7 @@ import type { Vehicle } from '../types/vehicle'
 import {
   calculateVehicleAge,
   classifyEntryDateIssue,
+  formatElapsedRefreshTime,
   formatActionLoggedAge,
   filterVehicles,
   getAgeBand,
@@ -436,6 +437,23 @@ describe('inventory freshness', () => {
   it('rejects invalid injected timestamps explicitly', () => {
     expect(() => getFreshnessLevel(new Date(Number.NaN), now)).toThrow(RangeError)
     expect(() => getFreshnessLevel(now, new Date(Number.NaN))).toThrow(RangeError)
+  })
+
+  it.each([
+    [0, 'Just now'],
+    [1, '1 min ago'],
+    [25, '25 min ago'],
+    [60, '60 min ago'],
+  ])('formats a refresh age of %i minutes as %s', (minutes, label) => {
+    const lastRefreshedAt = new Date(now.getTime() - minutes * 60 * 1000)
+    expect(formatElapsedRefreshTime(lastRefreshedAt, now)).toBe(label)
+  })
+
+  it('rejects invalid timestamps when formatting elapsed refresh time', () => {
+    expect(() => formatElapsedRefreshTime(new Date(Number.NaN), now))
+      .toThrow(RangeError)
+    expect(() => formatElapsedRefreshTime(now, new Date(Number.NaN)))
+      .toThrow(RangeError)
   })
 })
 

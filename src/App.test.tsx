@@ -123,6 +123,7 @@ function createVehicles(count: number): Vehicle[] {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
   vi.restoreAllMocks()
   window.localStorage.clear()
   window.history.replaceState({}, '', '/')
@@ -349,7 +350,7 @@ describe('App', () => {
   })
 
   it('confirms a successful save and displays its logged age from the injected clock', async () => {
-    const loggedAt = new Date(2026, 6, 10, 9)
+    const loggedAt = new Date()
     const clock = vi.fn(() => loggedAt)
     const vehicles = sampleVehicles.map((vehicle) =>
       vehicle.vehicleId === 'vehicle-001'
@@ -559,9 +560,11 @@ describe('App', () => {
 
   it('requests inventory again and updates last-refreshed time on manual refresh', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
-    const firstRefresh = new Date('2026-10-08T10:00:00.000Z')
-    const secondRefresh = new Date('2026-10-08T10:05:00.000Z')
-    const clock = vi.fn().mockReturnValueOnce(firstRefresh).mockReturnValueOnce(secondRefresh)
+    const firstRefresh = new Date()
+    const secondRefresh = new Date(firstRefresh.getTime() + 5 * 60 * 1000)
+    const clock = vi.fn()
+      .mockReturnValueOnce(firstRefresh)
+      .mockReturnValueOnce(secondRefresh)
     const user = userEvent.setup()
 
     render(<App inventoryService={service} clock={clock} />)
@@ -580,13 +583,17 @@ describe('App', () => {
   })
 
   it('keeps the last successful inventory and timestamp when refresh fails', async () => {
-    const refreshedAt = new Date('2026-10-08T10:00:00.000Z')
+    const refreshedAt = new Date()
+    const retriedAt = new Date(refreshedAt.getTime() + 5 * 60 * 1000)
     const getVehicles = vi
       .fn<InventoryService['getVehicles']>()
       .mockResolvedValueOnce(sampleVehicles)
       .mockRejectedValueOnce(new Error('Temporary service failure'))
+      .mockResolvedValueOnce(sampleVehicles)
     const service = createInventoryService(getVehicles)
-    const clock = vi.fn(() => refreshedAt)
+    const clock = vi.fn()
+      .mockReturnValueOnce(refreshedAt)
+      .mockReturnValueOnce(retriedAt)
     const user = userEvent.setup()
 
     render(<App inventoryService={service} clock={clock} />)
@@ -599,6 +606,70 @@ describe('App', () => {
     expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
     expect(screen.getByText('Last refreshed').parentElement?.querySelector('time'))
       .toHaveAttribute('datetime', refreshedAt.toISOString())
+    await user.click(within(screen.getByRole('alert')).getByRole('button', { name: 'Retry' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(screen.getByText('Last refreshed').parentElement?.querySelector('time'))
+        .toHaveAttribute('datetime', retriedAt.toISOString())
+    })
+    expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
+    expect(getVehicles).toHaveBeenCalledTimes(3)
+  })
+
+  it('shows the reference date and amber elapsed freshness after 15 minutes', async () => {
+    vi.useFakeTimers()
+    const refreshedAt = new Date(2026, 9, 9, 10, 0)
+    const now = new Date(2026, 9, 9, 10, 25)
+    vi.setSystemTime(now)
+    const clock = vi.fn(() => refreshedAt)
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+
+    render(<App inventoryService={service} clock={clock} />)
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(screen.getByText('Reference date').parentElement).toHaveTextContent(
+      '09-Oct-2026',
+    )
+    expect(screen.getByText('Last refreshed').parentElement)
+      .toHaveAttribute('data-freshness-level', 'amber')
+    expect(screen.getByText('Last refreshed').parentElement).toHaveTextContent(
+      '25 min ago',
+    )
+    expect(screen.queryByRole('status', { name: 'Stale inventory warning' }))
+      .not.toBeInTheDocument()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000)
+    })
+    expect(screen.getByText('Last refreshed').parentElement).toHaveTextContent(
+      '26 min ago',
+    )
+  })
+
+  it('shows a stale-data warning and refresh control at 60 minutes', async () => {
+    vi.useFakeTimers()
+    const refreshedAt = new Date(2026, 9, 9, 10, 0)
+    const now = new Date(2026, 9, 9, 11, 0)
+    vi.setSystemTime(now)
+    const clock = vi.fn(() => refreshedAt)
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+
+    render(<App inventoryService={service} clock={clock} />)
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const warning = screen.getByRole('status', { name: 'Stale inventory warning' })
+    const summary = screen.getByRole('region', { name: 'Inventory summary' })
+    expect(warning).toHaveTextContent('60 min ago')
+    expect(within(warning).getByRole('button', { name: 'Refresh now' }))
+      .toBeInTheDocument()
+    expect(warning.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy()
+    expect(screen.getByText('Last refreshed').parentElement)
+      .toHaveAttribute('data-freshness-level', 'warning')
   })
 
   it('shows the default page and supports first, previous, numbered, next, and last-page navigation', async () => {

@@ -1,57 +1,58 @@
 # Active WBS Task
 
-> Execution snapshot for WBS 4.19. The repository owner approved CR-07, CR-16 and CR-29, plus retaining the dialog action-entry design, for this task only. This scoped approval does not change the requirements baseline or the broader Proposed status of these CRs.
+> Execution snapshot for WBS 4.20. The repository owner invoked this task, authorizing its CR-17 freshness behavior for this task only. The 15/60-minute thresholds remain named assessment placeholders, not production freshness targets; A-18/OQ-11 and D37 remain proposed outside this scope.
 
 ## Task
 
-- WBS ID: 4.19
-- Name: Show Action Logged Time, Save Feedback and Error Reference
+- WBS ID: 4.20
+- Name: Build Freshness Indicators
 - Workstream: UI Implementation
 - Priority: Should
 - Status: Complete
-- Planned effort: 0.50 hour
-- CR Ref: CR-07, CR-16, CR-29
+- Planned effort: 1.00 hour
+- CR Ref: CR-17
 
 ## Objective
 
-Show relative action age, successful-save confirmation, and the matching correlation reference when an action save fails. Keep action entry in the approved dialog design.
+Make inventory freshness, the reference date, and refresh outcomes visible in the dashboard header and inventory section.
 
 ## Linked acceptance criteria
 
-- AC-R3-01: Permit an action only for an eligible aging vehicle and save it through `InventoryService`.
-- AC-R3-07: Show `Logged today` or the elapsed calendar-day label for a saved action.
-- AC-R3-09: Include the correlation ID from the failed service-call log in the inline save error.
+- AC-R4-06: A failed manual refresh preserves loaded rows and the last successful refresh time, while showing an error and Retry.
+- AC-R5-03: Classify 14, 15, 59 and 60 minutes as normal, amber, amber and warning.
+- AC-R5-04: Show the last-refreshed time and elapsed time, with amber styling at 25 minutes.
+- AC-R5-05: At 60 minutes, show a stale-data warning and Refresh now above the summary.
+- AC-R5-06: Show the reference date as DD-MMM-YYYY.
 
 ## Approved assumptions and decisions used
 
-- The repository owner explicitly approved CR-07, CR-16 and CR-29 for WBS 4.19 and confirmed that the action form should follow the dialog design.
-- Approval is scoped to this task; no proposed requirement, assumption or design choice was changed in the baseline.
-- Use an injected runtime clock for deterministic action timestamps and relative-day rendering.
-- Continue to store only one current action per eligible vehicle; no action history or Undo behavior is added.
-- WBS 4.10 is complete, so the existing service logging decorator provides the correlation ID to expose on failed saves.
-- Keep the `InventoryService` method signatures unchanged.
+- A-08: Real-time is represented by last-refreshed time plus manual refresh.
+- The WBS 4.20 invocation authorizes implementing the task-specified CR-17 behavior for this assessment task.
+- Use the named 15- and 60-minute placeholders as specified by AC-R5-03 and WBS 4.20; no production service-level target or push/polling mechanism is implied.
+- Preserve the existing separation between first-load failure (no inventory rows) and refresh failure (previous rows remain visible).
+- Keep inventory access behind the existing `InventoryService` and use the injected clock for deterministic timestamps and tests.
 
 ## Relevant design components
 
-- `src/core/aging.ts`: pure action-age label formatting.
-- `src/App.tsx`: dashboard action-save orchestration, injected clock and success feedback.
-- `src/components/InventoryTable.tsx` and `.css`: aging-row action-age display and modal dialog presentation.
-- `src/components/ProposedActionForm.tsx`: validation, service error and correlation reference.
-- `src/services/logging-inventory-service.ts`: existing service logging boundary and correlated save errors.
+- `src/core/aging.ts`: pure freshness thresholds and elapsed-time display formatting.
+- `src/App.tsx`: current time, successful refresh state, header and stale-warning orchestration.
+- `src/App.css`: freshness-level, error and warning presentation.
+- `src/App.test.tsx`: fixed-clock refresh, stale-threshold, retry and reference-date behavior.
 
 ## In scope
 
-- Show action logged age as `Logged today`, `Logged yesterday`, or `Logged N days ago`; omit the age label for missing, invalid or future timestamps.
-- Show `No action yet` for aging vehicles without a current action.
-- Show an accessible action-entry dialog for eligible rows.
-- Show `Action saved` after successful service completion; preserve the previous current action and expose the correlated reference on failure.
-- Add fixed-clock pure and component tests plus logging-correlation assertions.
+- Show the current reference date as DD-MMM-YYYY in the header.
+- Show last-refreshed time and elapsed minutes; update the displayed elapsed time while the page remains open.
+- Apply normal, amber and warning states at the existing 15/60-minute placeholder thresholds.
+- At 60 minutes, show a stale-data banner above the summary with a Refresh now action.
+- On refresh failure, keep the prior inventory and timestamp and expose Retry; preserve the distinct first-load failure behavior.
+- Add focused pure and component tests, and update the execution snapshot, traceability and factual collaboration log.
 
 ## Explicitly out of scope
 
-- Action-history, Undo, bulk actions, stale-action flags, new action values or action changes for non-aging vehicles.
-- Changes to `docs/wbs.md`, the requirements baseline, system design, dependencies, unrelated task files, or mock service persistence policy.
-- Staging, committing or pushing.
+- Changing the requirements baseline, `docs/wbs.md`, system design or proposal status for A-18/D37.
+- Production freshness targets, automatic data refresh, server push/polling, authentication, backend work or new dependencies.
+- Features assigned to later WBS tasks, unrelated existing changes, staging, committing or pushing.
 
 ## Files changed
 
@@ -59,24 +60,22 @@ Show relative action age, successful-save confirmation, and the matching correla
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
 - `src/App.tsx`, `src/App.css`, `src/App.test.tsx`
-- `src/components/InventoryTable.tsx`, `src/components/InventoryTable.css`
-- `src/components/ProposedActionForm.tsx`
 - `src/core/aging.ts`, `src/core/aging.test.ts`
-- `src/services/logging-inventory-service.ts`, `src/services/logging-inventory-service.test.ts`
 
 ## Verification
 
-- Focused: `npm test -- --pool=threads --maxWorkers=1 --isolate=false src/core/aging.test.ts src/services/logging-inventory-service.test.ts src/App.test.tsx` (3 files, 89 tests passed).
-- Full suite: `npm test -- --pool=threads --maxWorkers=1 --isolate=false` (5 files, 106 tests passed).
+- Focused: `npm test -- --pool=threads --maxWorkers=1 --isolate=false src/core/aging.test.ts src/App.test.tsx` (2 files, 92 tests passed).
+- Full suite: `npm test -- --pool=threads --maxWorkers=1 --isolate=false` (5 files, 112 tests passed).
 - `npm run lint` passed.
 - `npm run build` passed.
-- The first focused run hit a Vitest worker-startup timeout; the isolated, single-worker rerun passed. A subsequent focused run exposed an ambiguous Action label in the new test; the query was scoped to its dialog before the passing run.
-- `git diff --check` passed; the final diff was reviewed.
+- Browser review with `?dataAgeMinutes=25` showed the amber `25 min ago` state; `?dataAgeMinutes=60` showed the warning, `60 min ago`, and both Refresh now controls.
+- `git diff --check` passed; final diff reviewed.
+- An initial focused run timed out during Vitest worker startup; isolated one-worker reruns passed. An early stale-warning query had an incorrect accessible-name matcher; it was corrected before the passing run.
 
 ## Exit criteria
 
-- Existing current action remains visible if save fails; on success the updated action and success feedback appear.
-- Action age and failed-save correlation ID are presented as specified.
-- Full tests, lint, build and final diff checks pass.
+- Header date, elapsed refresh age, freshness colors and stale warning match the task-defined placeholders.
+- Refresh errors preserve last successful inventory and timestamp, provide Retry, and do not change first-load behavior.
+- Focused/full tests, lint, build, browser freshness review and final diff checks pass.
 
 Do not stage, commit, or push.
