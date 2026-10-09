@@ -16,8 +16,7 @@
 .inventory-table__th--make { width: 110px; }
 .inventory-table__th--model { width: 108px; }
 .inventory-table__th--entry { width: 128px; }
-.inventory-table__th--days { width: 116px; }
-.inventory-table__th--status { width: 144px; }
+.inventory-table__th--days { width: 190px; }
 
 .inventory-table caption {
   position: absolute;
@@ -188,22 +187,19 @@
   background: #fff4e6;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.inventory-table__over {
-  display: block;
-  margin-top: 4px;
-  color: #b4530a;
-  font-size: 11.5px;
-  font-weight: 600;
+.inventory-table__age {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.inventory-table__in-range {
-  color: #98a2b0;
-  font-size: 12px;
+.inventory-table__age-number {
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .data-issue-badge {

@@ -242,7 +242,6 @@ export const SORT_KEYS = [
   'model',
   'entryDate',
   'daysInStock',
-  'status',
   'currentAction',
 ] as const
 
@@ -253,7 +252,7 @@ export interface VehicleSort {
   direction: SortDirection
 }
 
-const descendingFirstSortKeys: readonly SortKey[] = ['daysInStock', 'status']
+const descendingFirstSortKeys: readonly SortKey[] = ['daysInStock']
 
 const sortDirectionWords: Record<SortKey, readonly [string, string]> = {
   stockNumber: ['A-Z', 'Z-A'],
@@ -261,8 +260,7 @@ const sortDirectionWords: Record<SortKey, readonly [string, string]> = {
   make: ['A-Z', 'Z-A'],
   model: ['A-Z', 'Z-A'],
   entryDate: ['oldest first', 'newest first'],
-  daysInStock: ['fewest first', 'most first'],
-  status: ['in range first', 'aging first, then soon'],
+  daysInStock: ['newest stock first', 'oldest stock first'],
   currentAction: ['A-Z', 'Z-A'],
 }
 
@@ -272,8 +270,7 @@ export const SORT_LABELS: Record<SortKey, string> = {
   make: 'Make',
   model: 'Model',
   entryDate: 'Entry date',
-  daysInStock: 'Days in stock',
-  status: 'Status',
+  daysInStock: 'Age (days)',
   currentAction: 'Current action',
 }
 
@@ -326,12 +323,6 @@ function getSortValue(vehicle: Vehicle, key: SortKey): string | number | null {
       return getEntryDateTime(vehicle)
     case 'daysInStock':
       return vehicle.daysInStock
-    case 'status':
-      return vehicle.isAging
-        ? 2
-        : getDaysUntilAging(vehicle.daysInStock) !== null
-          ? 1
-          : 0
     case 'currentAction':
       return vehicle.currentAction?.action ?? null
   }

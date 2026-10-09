@@ -348,7 +348,7 @@
 .age-profile__threshold {
   position: absolute;
   top: -7px;
-  height: 69px;
+  height: 80px;
   width: 2px;
   border-left: 2px dashed #172033;
   transform: translateX(-50%);
@@ -357,7 +357,7 @@
 
 .age-profile__threshold-label {
   position: absolute;
-  top: calc(100% - 21px);
+  top: calc(100% - 15px);
   transform: translateX(-100%);
   padding: 0 4px;
   color: #172033;

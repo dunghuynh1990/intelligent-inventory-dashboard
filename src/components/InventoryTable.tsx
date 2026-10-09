@@ -32,7 +32,6 @@ const columnClassNames: Record<SortKey, string> = {
   model: 'model',
   entryDate: 'entry',
   daysInStock: 'days',
-  status: 'status',
   currentAction: 'action',
 }
 
@@ -142,33 +141,40 @@ export function InventoryTable({
                     {formatEntryDate(vehicle.stockEntryDate)}
                   </td>
                   <td className="inventory-table__days">
-                    {vehicle.daysInStock ?? (
-                      <span className="inventory-table__unknown">Unknown</span>
-                    )}
-                  </td>
-                  <td>
-                    {vehicle.entryDateIssue ? (
-                      <span className="data-issue-badge">{vehicle.entryDateIssue}</span>
-                    ) : vehicle.isAging ? (
-                      <>
-                        <span className="aging-badge">
-                          <Svg size={12}>
-                            <circle cx="12" cy="12" r="9" />
-                            <path d="M12 7v5l3 2" />
-                          </Svg>
-                          Aging
-                        </span>
-                        <span className="inventory-table__over">
-                          +{daysOver} {daysOver === 1 ? 'day' : 'days'} over
-                        </span>
-                      </>
-                    ) : daysUntilAging !== null ? (
-                      <span className="early-warning-badge">
-                        Due in {daysUntilAging}{' '}
-                        {daysUntilAging === 1 ? 'day' : 'days'}
+                    {vehicle.entryDateIssue || vehicle.daysInStock === null ? (
+                      <span className="data-issue-badge">
+                        {vehicle.entryDateIssue ?? 'Unknown'}
                       </span>
                     ) : (
-                      <span className="inventory-table__in-range">In range</span>
+                      <span className="inventory-table__age">
+                        <span className="inventory-table__age-number">
+                          {vehicle.daysInStock}
+                        </span>
+                        {vehicle.isAging ? (
+                          <>
+                            <span className="aging-badge" aria-hidden="true">
+                              <Svg size={12}>
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M12 7v5l3 2" />
+                              </Svg>
+                              {daysOver} over
+                            </span>
+                            <span className="inventory-table__sr-only">
+                              , aging, {daysOver} {daysOver === 1 ? 'day' : 'days'} over
+                            </span>
+                          </>
+                        ) : daysUntilAging !== null ? (
+                          <>
+                            <span className="early-warning-badge" aria-hidden="true">
+                              {daysUntilAging} to go
+                            </span>
+                            <span className="inventory-table__sr-only">
+                              , due to age in {daysUntilAging}{' '}
+                              {daysUntilAging === 1 ? 'day' : 'days'}
+                            </span>
+                          </>
+                        ) : null}
+                      </span>
                     )}
                   </td>
                   <td>

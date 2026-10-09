@@ -469,7 +469,6 @@ describe('inventory sorting', () => {
     expect(ids(sortRows(mixed, { key: 'make', direction: 'asc' }))).toEqual(['b', 'd', 'c', 'a'])
     expect(ids(sortRows(mixed, { key: 'entryDate', direction: 'asc' }))).toEqual(['a', 'd', 'c', 'b'])
     expect(ids(sortRows(mixed, { key: 'entryDate', direction: 'desc' }))).toEqual(['c', 'd', 'a', 'b'])
-    expect(ids(sortRows(mixed, { key: 'status', direction: 'desc' }))).toEqual(['a', 'b', 'c', 'd'])
     expect(ids(sortRows(mixed, { key: 'currentAction', direction: 'asc' }))).toEqual(['c', 'a', 'b', 'd'])
   })
 
@@ -485,7 +484,8 @@ describe('inventory sorting', () => {
 
   it('describes the active sort', () => {
     expect(getSortLabel({ key: 'vin', direction: 'desc' })).toBe('VIN, Z-A')
-    expect(getSortLabel({ key: 'daysInStock', direction: 'desc' })).toBe('Days in stock, most first')
+    expect(getSortLabel({ key: 'daysInStock', direction: 'desc' })).toBe('Age (days), oldest stock first')
+    expect(getSortLabel({ key: 'daysInStock', direction: 'asc' })).toBe('Age (days), newest stock first')
   })
 })
 

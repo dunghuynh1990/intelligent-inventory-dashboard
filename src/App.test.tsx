@@ -188,12 +188,17 @@ describe('App', () => {
     expect(agingVehicleRow).toHaveTextContent('1HGCM82633A004351')
     expect(agingVehicleRow).toHaveTextContent('09-Jul-2026')
     expect(agingVehicleRow).toHaveTextContent('91')
-    expect(within(agingVehicleRow).getByText('Aging')).toBeInTheDocument()
+    expect(within(agingVehicleRow).getByText('1 over')).toBeInTheDocument()
+    expect(agingVehicleRow).toHaveTextContent('aging, 1 day over')
     expect(agingVehicleRow).toHaveTextContent('Price Reduction Planned')
     expect(agingVehicleRow).toHaveTextContent('Review this week')
 
     const nonAgingVehicleRow = within(table).getByRole('row', { name: /STK-0002/ })
-    expect(within(nonAgingVehicleRow).queryByText('Aging')).not.toBeInTheDocument()
+    expect(within(nonAgingVehicleRow).getByText('1 to go')).toBeInTheDocument()
+    expect(within(nonAgingVehicleRow).queryByText(/over/)).not.toBeInTheDocument()
+    expect(nonAgingVehicleRow).not.toHaveTextContent('In range')
+    const normalRow = within(table).getByRole('row', { name: /STK-0005/ })
+    expect(within(normalRow).queryByText(/over|to go/)).not.toBeInTheDocument()
     expect(nonAgingVehicleRow).toHaveTextContent('No action')
     expect(within(nonAgingVehicleRow).queryByRole('button', { name: /action/i }))
       .not.toBeInTheDocument()
@@ -204,9 +209,9 @@ describe('App', () => {
       .toBeInTheDocument()
 
     const unknownAgeVehicleRow = within(table).getByRole('row', { name: /STK-0003/ })
-    expect(unknownAgeVehicleRow).toHaveTextContent('Unknown')
     expect(unknownAgeVehicleRow).toHaveTextContent('Invalid entry date')
-    expect(within(unknownAgeVehicleRow).queryByText('Aging')).not.toBeInTheDocument()
+    expect(unknownAgeVehicleRow).not.toHaveTextContent('Unknown')
+    expect(within(unknownAgeVehicleRow).queryByText(/over|to go/)).not.toBeInTheDocument()
     expect(within(unknownAgeVehicleRow).queryByRole('button', { name: /action/i }))
       .not.toBeInTheDocument()
     expect(within(unknownAgeVehicleRow).getByText('invalid-date')).toBeInTheDocument()
@@ -268,9 +273,9 @@ describe('App', () => {
     expect(earlyWarningButton).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 1-2 of 2')
     expect(within(table).getByRole('row', { name: /STK-84/ }))
-      .toHaveTextContent('Due in 7 days')
+      .toHaveTextContent('7 to go')
     expect(within(table).getByRole('row', { name: /STK-90/ }))
-      .toHaveTextContent('Due in 1 day')
+      .toHaveTextContent('1 to go')
     expect(within(table).queryByRole('row', { name: /STK-83/ }))
       .not.toBeInTheDocument()
     expect(within(table).queryByRole('row', { name: /STK-91/ }))
@@ -486,8 +491,8 @@ describe('App', () => {
     expect(futureDateRow).toHaveTextContent('09-Oct-2026')
     expect(futureDateRow).toHaveTextContent('Future entry date')
     for (const row of [missingDateRow, futureDateRow]) {
-      expect(row).toHaveTextContent('Unknown')
-      expect(within(row).queryByText('Aging')).not.toBeInTheDocument()
+      expect(row).not.toHaveTextContent('Unknown')
+      expect(within(row).queryByText(/over|to go/)).not.toBeInTheDocument()
       expect(within(row).queryByRole('button', { name: /action/i }))
         .not.toBeInTheDocument()
     }
@@ -1078,7 +1083,7 @@ describe('App', () => {
 
     render(<App inventoryService={service} />)
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
-    const header = within(table).getByRole('columnheader', { name: /Days in stock/ })
+    const header = within(table).getByRole('columnheader', { name: /Age \(days\)/ })
     const sortButton = within(header).getByRole('button')
     const defaultOrder = getStockOrder(table)
     expect(header).toHaveAttribute('aria-sort', 'none')
@@ -1090,7 +1095,7 @@ describe('App', () => {
       'STK-0001', 'STK-0004', 'STK-0002', 'STK-0005',
       'STK-0003', 'STK-0006', 'STK-0007',
     ])
-    expect(screen.getByText('Days in stock, most first')).toBeInTheDocument()
+    expect(screen.getByText('Age (days), oldest stock first')).toBeInTheDocument()
 
     await user.click(sortButton)
     expect(header).toHaveAttribute('aria-sort', 'ascending')
