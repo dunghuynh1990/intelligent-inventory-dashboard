@@ -1150,20 +1150,23 @@ describe('App', () => {
     expect(screen.getByText('Data issues', { selector: '.active-filter-chip span' }))
       .toBeInTheDocument()
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'no-match')
-    expect(screen.getByRole('status')).toHaveTextContent('Showing 0 of 0')
-    const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
-    expect(within(pager).getByText('No pages')).toBeInTheDocument()
-    expect(within(pager).getByRole('button', { name: 'First page' }))
-      .toBeDisabled()
-    expect(within(pager).getByRole('button', { name: 'Next page' }))
-      .toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 0-0 of 0')
+    expect(screen.queryByRole('navigation', { name: 'Inventory pagination' }))
+      .not.toBeInTheDocument()
+    expect(screen.getByRole('heading', {
+      name: 'No vehicles match these filters',
+    })).toBeInTheDocument()
+    expect(screen.getByText(/Try changing or clearing the filters/))
+      .toBeInTheDocument()
+    const clearButtons = screen.getAllByRole('button', { name: 'Clear filters' })
+    expect(clearButtons).toHaveLength(2)
 
     await user.click(screen.getByRole('button', { name: 'Remove Data issues filter' }))
 
     expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('no-match')
     expect(screen.queryByText('Data issues', { selector: '.active-filter-chip span' }))
       .not.toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('Showing 0 of 0')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 0-0 of 0')
   })
 
   it('updates model options with make and clears a model unavailable for the new make', async () => {
@@ -1242,13 +1245,18 @@ describe('App', () => {
 
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'no matching vehicle')
 
-    expect(await screen.findByText('No vehicles match these filters.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', {
+      name: 'No vehicles match these filters',
+    })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Clear filters' }))
+      .toHaveLength(2)
     expect(screen.queryByText('No vehicles in inventory.')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    await user.click(screen.getAllByRole('button', { name: 'Clear filters' })[1])
 
     expect(await screen.findByRole('table', { name: 'Vehicle inventory' })).toBeInTheDocument()
-    expect(screen.queryByText('No vehicles match these filters.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', {
+      name: 'No vehicles match these filters',
+    })).not.toBeInTheDocument()
   })
 })

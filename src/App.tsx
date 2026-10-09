@@ -17,7 +17,10 @@ import {
 import type { InventoryService } from './services/inventory-service'
 import type { AgeBand, Vehicle, VehicleAction } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
-import { InventoryFilters } from './components/InventoryFilters'
+import {
+  InventoryFilterChips,
+  InventoryFilters,
+} from './components/InventoryFilters'
 import { InventoryPager } from './components/InventoryPager'
 import { InventoryPresets } from './components/InventoryPresets'
 import { InventorySummary } from './components/InventorySummary'
@@ -130,10 +133,13 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     () => paginateItems(filteredVehicles, currentPage, pageSize),
     [filteredVehicles, currentPage, pageSize],
   )
-  const resultCount =
+  const firstResult =
+    page.totalItems === 0 ? 0 : (page.currentPage - 1) * page.pageSize + 1
+  const lastResult =
     page.totalItems === 0
-      ? 'Showing 0 of 0'
-      : `Showing ${(page.currentPage - 1) * page.pageSize + 1}-${(page.currentPage - 1) * page.pageSize + page.items.length} of ${page.totalItems}`
+      ? 0
+      : (page.currentPage - 1) * page.pageSize + page.items.length
+  const resultCount = `Showing ${firstResult}-${lastResult} of ${page.totalItems}`
   const summaryCounts = useMemo(
     () => getInventorySummary(allVehicles),
     [allVehicles],
@@ -382,58 +388,91 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
             />
           )}
           {vehicles !== null && (
-            <InventoryPresets
-              presets={inventoryPresets}
-              selectedPresetId={activePresetId}
-              onSelect={handlePresetSelect}
-            />
-          )}
-          {vehicles !== null && (
-            <p className="inventory-result-count" role="status">
-              {resultCount}
-            </p>
-          )}
-          {vehicles !== null && vehicles.length === 0 && !isLoading && (
-            <p className="inventory-empty">No vehicles in inventory.</p>
-          )}
-          {vehicles !== null && vehicles.length > 0 && (
-            <>
-              <InventoryFilters
-                filters={filters}
-                makes={makes}
-                models={models}
-                onChange={handleFiltersChange}
-                onMakeChange={handleMakeChange}
-                onReset={() => handleFiltersChange(emptyFilters)}
+            <div className="inventory-browser">
+              <InventoryPresets
+                presets={inventoryPresets}
+                selectedPresetId={activePresetId}
+                onSelect={handlePresetSelect}
               />
-              {filteredVehicles.length === 0 ? (
-                <div className="inventory-no-results">
-                  <p>No vehicles match these filters.</p>
-                </div>
-              ) : (
-                <InventoryTable
-                  vehicles={page.items}
-                  searchText={filters.searchText}
-                  actionAgeReferenceTime={currentTime}
-                  editingVehicleId={editingVehicleId}
-                  isSaving={savingVehicleId !== null}
-                  onEditAction={(vehicle) => setEditingVehicleId(vehicle.vehicleId)}
-                  onCancelAction={() => setEditingVehicleId(null)}
-                  onSaveAction={handleSaveAction}
+              {vehicles.length > 0 && (
+                <InventoryFilters
+                  filters={filters}
+                  makes={makes}
+                  models={models}
+                  onChange={handleFiltersChange}
+                  onMakeChange={handleMakeChange}
+                  onReset={() => handleFiltersChange(emptyFilters)}
                 />
               )}
-              <InventoryPager
-                currentPage={page.currentPage}
-                pageSize={page.pageSize}
-                totalPages={page.totalPages}
-                onPageChange={(nextPage) =>
-                  dispatch({ type: 'pageChanged', page: nextPage })
-                }
-                onPageSizeChange={(nextPageSize) =>
-                  dispatch({ type: 'pageSizeChanged', pageSize: nextPageSize })
-                }
-              />
-            </>
+              <div className="inventory-results">
+                <div className="inventory-results__toolbar">
+                  <p className="inventory-result-count" role="status">
+                    {resultCount}
+                  </p>
+                  {vehicles.length > 0 && (
+                    <InventoryFilterChips
+                      filters={filters}
+                      onChange={handleFiltersChange}
+                    />
+                  )}
+                </div>
+                {vehicles.length === 0 ? (
+                  <p className="inventory-empty">No vehicles in inventory.</p>
+                ) : filteredVehicles.length === 0 ? (
+                  <div className="inventory-no-results">
+                    <span className="inventory-no-results__icon" aria-hidden="true">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="m20 20-3.5-3.5M8 11h6" />
+                      </svg>
+                    </span>
+                    <h3>No vehicles match these filters</h3>
+                    <p>
+                      Try changing or clearing the filters. Some combinations,
+                      such as Aging only with the 0-30 band, never match.
+                    </p>
+                    <button
+                      className="inventory-no-results__clear"
+                      type="button"
+                      onClick={() => handleFiltersChange(emptyFilters)}
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <InventoryTable
+                      vehicles={page.items}
+                      searchText={filters.searchText}
+                      actionAgeReferenceTime={currentTime}
+                      editingVehicleId={editingVehicleId}
+                      isSaving={savingVehicleId !== null}
+                      onEditAction={(vehicle) => setEditingVehicleId(vehicle.vehicleId)}
+                      onCancelAction={() => setEditingVehicleId(null)}
+                      onSaveAction={handleSaveAction}
+                    />
+                    <InventoryPager
+                      currentPage={page.currentPage}
+                      pageSize={page.pageSize}
+                      totalPages={page.totalPages}
+                      onPageChange={(nextPage) =>
+                        dispatch({ type: 'pageChanged', page: nextPage })
+                      }
+                      onPageSizeChange={(nextPageSize) =>
+                        dispatch({ type: 'pageSizeChanged', pageSize: nextPageSize })
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            </div>
           )}
         </section>
       </main>

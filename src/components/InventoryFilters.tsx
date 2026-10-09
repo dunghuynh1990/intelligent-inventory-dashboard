@@ -33,8 +33,6 @@ export function InventoryFilters({
   onMakeChange,
   onReset,
 }: InventoryFiltersProps) {
-  const activeFilters = getActiveFilters(filters)
-
   return (
     <section className="inventory-filters" aria-label="Inventory filters">
       <div className="inventory-filters__controls">
@@ -164,24 +162,37 @@ export function InventoryFilters({
           Clear filters
         </button>
       </div>
-      {activeFilters.length > 0 && (
-        <ul className="active-filter-chips" aria-label="Active filters">
-          {activeFilters.map(({ key, label }) => (
-            <li className="active-filter-chip" key={key}>
-              <span>{label}</span>
-              <button
-                type="button"
-                aria-label={`Remove ${label} filter`}
-                onClick={() => onChange(removeFilter(filters, key))}
-              >
-                x
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   )
+}
+
+type InventoryFilterChipsProps = Pick<
+  InventoryFiltersProps,
+  'filters' | 'onChange'
+>
+
+export function InventoryFilterChips({
+  filters,
+  onChange,
+}: InventoryFilterChipsProps) {
+  const activeFilters = getActiveFilters(filters)
+
+  return activeFilters.length > 0 ? (
+    <ul className="active-filter-chips" aria-label="Active filters">
+      {activeFilters.map(({ key, label }) => (
+        <li className="active-filter-chip" key={key}>
+          <span>{label}</span>
+          <button
+            type="button"
+            aria-label={`Remove ${label} filter`}
+            onClick={() => onChange(removeFilter(filters, key))}
+          >
+            x
+          </button>
+        </li>
+      ))}
+    </ul>
+  ) : null
 }
 
 function getActiveFilters(
