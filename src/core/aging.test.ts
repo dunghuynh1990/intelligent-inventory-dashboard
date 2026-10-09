@@ -3,6 +3,7 @@ import type { Vehicle } from '../types/vehicle'
 import {
   calculateVehicleAge,
   classifyEntryDateIssue,
+  formatActionLoggedAge,
   filterVehicles,
   getAgeBand,
   getAvailableMakes,
@@ -435,6 +436,26 @@ describe('inventory freshness', () => {
   it('rejects invalid injected timestamps explicitly', () => {
     expect(() => getFreshnessLevel(new Date(Number.NaN), now)).toThrow(RangeError)
     expect(() => getFreshnessLevel(now, new Date(Number.NaN))).toThrow(RangeError)
+  })
+})
+
+describe('action logged age', () => {
+  const now = new Date(2024, 5, 4, 12)
+
+  it.each([
+    { loggedAt: new Date(2024, 5, 4, 8), label: 'Logged today' },
+    { loggedAt: new Date(2024, 5, 3, 23), label: 'Logged yesterday' },
+    { loggedAt: new Date(2024, 5, 1, 9), label: 'Logged 3 days ago' },
+  ])('formats action age as $label', ({ loggedAt, label }) => {
+    expect(formatActionLoggedAge(loggedAt.toISOString(), now)).toBe(label)
+  })
+
+  it('omits an age label for missing, invalid, or future timestamps', () => {
+    expect(formatActionLoggedAge(undefined, now)).toBeNull()
+    expect(formatActionLoggedAge('not-a-date', now)).toBeNull()
+    expect(
+      formatActionLoggedAge(new Date(2024, 5, 5, 9).toISOString(), now),
+    ).toBeNull()
   })
 })
 

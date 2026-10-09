@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { CorrelatedServiceError } from '../services/logging-inventory-service'
 import type { Vehicle, VehicleAction } from '../types/vehicle'
 import './ProposedActionForm.css'
 
@@ -47,7 +48,11 @@ export function ProposedActionForm({
     } catch (cause: unknown) {
       const message =
         cause instanceof Error ? cause.message : 'An unexpected error occurred.'
-      setSaveError(`Unable to save action: ${message}`)
+      const reference =
+        cause instanceof CorrelatedServiceError
+          ? ` (Ref: ${cause.correlationId})`
+          : ''
+      setSaveError(`Unable to save action: ${message}${reference}`)
     }
   }
 

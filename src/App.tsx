@@ -1,15 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import {
   filterVehicles,
   getAvailableMakes,
   getAvailableModels,
   getInventorySummary,
+  paginateItems,
   type InventoryFilterCriteria,
+  type PageSize,
 } from './core/aging'
 import type { InventoryService } from './services/inventory-service'
 import type { Vehicle, VehicleAction } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
 import { InventoryFilters } from './components/InventoryFilters'
+import { InventoryPager } from './components/InventoryPager'
 import { InventorySummary } from './components/InventorySummary'
 import './App.css'
 
@@ -31,14 +34,81 @@ const emptyFilters: InventoryFilterCriteria = {
 }
 const noVehicles: Vehicle[] = []
 
+type DashboardState = {
+  vehicles: Vehicle[] | null
+  filters: InventoryFilterCriteria
+  currentPage: number
+  pageSize: PageSize
+}
+
+type DashboardAction =
+  | { type: 'inventoryLoaded'; vehicles: Vehicle[] }
+  | { type: 'filtersChanged'; filters: InventoryFilterCriteria }
+  | { type: 'pageChanged'; page: number }
+  | { type: 'pageSizeChanged'; pageSize: PageSize }
+  | { type: 'vehicleActionChanged'; vehicleId: string; action: VehicleAction }
+
+const initialDashboardState: DashboardState = {
+  vehicles: null,
+  filters: emptyFilters,
+  currentPage: 1,
+  pageSize: 20,
+}
+
+function dashboardReducer(
+  state: DashboardState,
+  action: DashboardAction,
+): DashboardState {
+  switch (action.type) {
+    case 'inventoryLoaded':
+      return clampPage({ ...state, vehicles: action.vehicles })
+    case 'filtersChanged':
+      return { ...state, filters: action.filters, currentPage: 1 }
+    case 'pageChanged':
+      return clampPage({ ...state, currentPage: action.page })
+    case 'pageSizeChanged':
+      return clampPage({ ...state, pageSize: action.pageSize })
+    case 'vehicleActionChanged':
+      if (state.vehicles === null) {
+        return state
+      }
+
+      return clampPage({
+        ...state,
+        vehicles: state.vehicles.map((vehicle) =>
+          vehicle.vehicleId === action.vehicleId
+            ? { ...vehicle, currentAction: action.action }
+            : vehicle,
+        ),
+      })
+  }
+}
+
+function clampPage(state: DashboardState): DashboardState {
+  const filteredVehicles = filterVehicles(state.vehicles ?? noVehicles, state.filters)
+  const currentPage = paginateItems(
+    filteredVehicles,
+    state.currentPage,
+    state.pageSize,
+  ).currentPage
+
+  return currentPage === state.currentPage ? state : { ...state, currentPage }
+}
+
 function App({ inventoryService, clock = systemClock }: AppProps) {
-  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
+  const [dashboardState, dispatch] = useReducer(
+    dashboardReducer,
+    initialDashboardState,
+  )
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
+  const [actionAgeReferenceTime, setActionAgeReferenceTime] =
+    useState<Date | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<InventoryFilterCriteria>(emptyFilters)
+  const [actionSaveConfirmation, setActionSaveConfirmation] = useState(false)
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null)
   const [savingVehicleId, setSavingVehicleId] = useState<string | null>(null)
+  const { vehicles, filters, currentPage, pageSize } = dashboardState
   const allVehicles = vehicles ?? noVehicles
   const makes = useMemo(() => getAvailableMakes(allVehicles), [allVehicles])
   const models = useMemo(
@@ -49,6 +119,14 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     () => filterVehicles(allVehicles, filters),
     [allVehicles, filters],
   )
+  const page = useMemo(
+    () => paginateItems(filteredVehicles, currentPage, pageSize),
+    [filteredVehicles, currentPage, pageSize],
+  )
+  const resultCount =
+    page.totalItems === 0
+      ? 'Showing 0 of 0'
+      : `Showing ${(page.currentPage - 1) * page.pageSize + 1}-${(page.currentPage - 1) * page.pageSize + page.items.length} of ${page.totalItems}`
   const summaryCounts = useMemo(
     () => getInventorySummary(allVehicles),
     [allVehicles],
@@ -60,8 +138,10 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
 
     try {
       const currentVehicles = await inventoryService.getVehicles()
-      setVehicles(currentVehicles)
-      setLastRefreshed(clock())
+      dispatch({ type: 'inventoryLoaded', vehicles: currentVehicles })
+      const refreshedAt = clock()
+      setLastRefreshed(refreshedAt)
+      setActionAgeReferenceTime(refreshedAt)
     } catch (cause: unknown) {
       const message =
         cause instanceof Error ? cause.message : 'An unexpected error occurred.'
@@ -78,8 +158,10 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
       .getVehicles()
       .then((currentVehicles) => {
         if (active) {
-          setVehicles(currentVehicles)
-          setLastRefreshed(clock())
+          dispatch({ type: 'inventoryLoaded', vehicles: currentVehicles })
+          const refreshedAt = clock()
+          setLastRefreshed(refreshedAt)
+          setActionAgeReferenceTime(refreshedAt)
         }
       })
       .catch((cause: unknown) => {
@@ -109,25 +191,32 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
 
   const handleMakeChange = (make: string) => {
     const availableModels = getAvailableModels(allVehicles, make)
-    setFilters((currentFilters) => ({
-      ...currentFilters,
-      make,
-      model: availableModels.includes(currentFilters.model) ? currentFilters.model : '',
-    }))
+    dispatch({
+      type: 'filtersChanged',
+      filters: {
+        ...filters,
+        make,
+        model: availableModels.includes(filters.model) ? filters.model : '',
+      },
+    })
+  }
+
+  const handleFiltersChange = (nextFilters: InventoryFilterCriteria) => {
+    dispatch({ type: 'filtersChanged', filters: nextFilters })
   }
 
   const handleSaveAction = async (vehicleId: string, action: VehicleAction) => {
     setSavingVehicleId(vehicleId)
+    setActionSaveConfirmation(false)
     try {
+      const loggedAt = clock()
+      const actionLoggedAt = loggedAt.toISOString()
       await inventoryService.updateVehicleAction(vehicleId, action)
-      setVehicles((currentVehicles) =>
-        currentVehicles?.map((vehicle) =>
-          vehicle.vehicleId === vehicleId
-            ? { ...vehicle, currentAction: action }
-            : vehicle,
-        ) ?? null,
-      )
+      const savedAction = { ...action, loggedAt: actionLoggedAt }
+      dispatch({ type: 'vehicleActionChanged', vehicleId, action: savedAction })
+      setActionAgeReferenceTime(loggedAt)
       setEditingVehicleId(null)
+      setActionSaveConfirmation(true)
     } finally {
       setSavingVehicleId(null)
     }
@@ -183,17 +272,22 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               {error}
             </p>
           )}
+          {actionSaveConfirmation && (
+            <p className="action-save-toast" role="status">
+              Action saved
+            </p>
+          )}
           {vehicles !== null && (
             <InventorySummary
               counts={summaryCounts}
-              onShowDataIssues={() => setFilters({ ...emptyFilters, dataIssuesOnly: true })}
+              onShowDataIssues={() =>
+                handleFiltersChange({ ...emptyFilters, dataIssuesOnly: true })
+              }
             />
           )}
           {vehicles !== null && (
             <p className="inventory-result-count" role="status">
-              {filteredVehicles.length === 0
-                ? `Showing 0 of 0`
-                : `Showing 1-${filteredVehicles.length} of ${filteredVehicles.length}`}
+              {resultCount}
             </p>
           )}
           {vehicles !== null && vehicles.length === 0 && !isLoading && (
@@ -205,9 +299,9 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                 filters={filters}
                 makes={makes}
                 models={models}
-                onChange={setFilters}
+                onChange={handleFiltersChange}
                 onMakeChange={handleMakeChange}
-                onReset={() => setFilters(emptyFilters)}
+                onReset={() => handleFiltersChange(emptyFilters)}
               />
               {filteredVehicles.length === 0 ? (
                 <div className="inventory-no-results">
@@ -215,8 +309,11 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                 </div>
               ) : (
                 <InventoryTable
-                  vehicles={filteredVehicles}
+                  vehicles={page.items}
                   searchText={filters.searchText}
+                  actionAgeReferenceTime={
+                    actionAgeReferenceTime ?? lastRefreshed ?? new Date()
+                  }
                   editingVehicleId={editingVehicleId}
                   isSaving={savingVehicleId !== null}
                   onEditAction={(vehicle) => setEditingVehicleId(vehicle.vehicleId)}
@@ -224,6 +321,17 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                   onSaveAction={handleSaveAction}
                 />
               )}
+              <InventoryPager
+                currentPage={page.currentPage}
+                pageSize={page.pageSize}
+                totalPages={page.totalPages}
+                onPageChange={(nextPage) =>
+                  dispatch({ type: 'pageChanged', page: nextPage })
+                }
+                onPageSizeChange={(nextPageSize) =>
+                  dispatch({ type: 'pageSizeChanged', pageSize: nextPageSize })
+                }
+              />
             </>
           )}
         </section>

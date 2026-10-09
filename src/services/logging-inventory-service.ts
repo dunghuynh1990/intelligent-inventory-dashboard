@@ -5,6 +5,19 @@ import type { Vehicle, VehicleAction } from '../types/vehicle'
 
 type CorrelationIdFactory = () => string
 
+export class CorrelatedServiceError extends Error {
+  readonly correlationId: string
+
+  constructor(
+    message: string,
+    correlationId: string,
+  ) {
+    super(message)
+    this.name = 'CorrelatedServiceError'
+    this.correlationId = correlationId
+  }
+}
+
 export function withLogging(
   service: InventoryService,
   logger: Logger = consoleLogger,
@@ -13,6 +26,7 @@ export function withLogging(
   const run = async <Result>(
     operation: string,
     invoke: () => Promise<Result>,
+    includeCorrelationOnFailure = false,
   ): Promise<Result> => {
     const correlationId = createCorrelationId()
     const details = { operation, correlationId }
@@ -27,6 +41,12 @@ export function withLogging(
         ...details,
         error: cause instanceof Error ? cause.message : String(cause),
       })
+      if (includeCorrelationOnFailure) {
+        throw new CorrelatedServiceError(
+          cause instanceof Error ? cause.message : String(cause),
+          correlationId,
+        )
+      }
       throw cause
     }
   }
@@ -35,8 +55,10 @@ export function withLogging(
     getVehicles: (): Promise<Vehicle[]> =>
       run('getVehicles', () => service.getVehicles()),
     updateVehicleAction: (vehicleId: string, action: VehicleAction): Promise<void> =>
-      run('updateVehicleAction', () =>
-        service.updateVehicleAction(vehicleId, action),
+      run(
+        'updateVehicleAction',
+        () => service.updateVehicleAction(vehicleId, action),
+        true,
       ),
   }
 }

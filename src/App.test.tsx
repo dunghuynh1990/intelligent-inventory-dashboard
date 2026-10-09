@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MockInventoryService } from './services/mock-inventory-service'
 import type { InventoryService } from './services/inventory-service'
+import type { Logger } from './observability/logger'
+import { withLogging } from './services/logging-inventory-service'
 import type { Vehicle } from './types/vehicle'
 import App from './App'
 
@@ -105,6 +107,19 @@ function createInventoryService(getVehicles: InventoryService['getVehicles']): I
     getVehicles,
     updateVehicleAction: vi.fn().mockResolvedValue(undefined),
   }
+}
+
+function createVehicles(count: number): Vehicle[] {
+  return Array.from({ length: count }, (_, index) => {
+    const sourceVehicle = sampleVehicles[index % sampleVehicles.length]
+    const number = String(index + 1).padStart(4, '0')
+
+    return {
+      ...sourceVehicle,
+      vehicleId: `vehicle-${number}`,
+      stockNumber: `STK-${number}`,
+    }
+  })
 }
 
 afterEach(() => {
@@ -251,14 +266,19 @@ describe('App', () => {
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
     await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    expect(
+      screen.getByRole('dialog', { name: 'Propose an action for STK-0004' }),
+    ).toBeInTheDocument()
     await user.type(screen.getByLabelText('Note (optional)'), 'Review this week')
     await user.click(screen.getByRole('button', { name: 'Save action' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Select an action before saving.',
     )
-    expect(row).toHaveTextContent('No action')
+    expect(within(row).getByText('No action yet')).toBeInTheDocument()
     expect(service.updateVehicleAction).not.toHaveBeenCalled()
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('keeps the previous action on save failure and retries the replacement', async () => {
@@ -277,9 +297,15 @@ describe('App', () => {
       getVehicles: vi.fn().mockResolvedValue(vehicles),
       updateVehicleAction,
     }
+    let callNumber = 0
+    const logger: Logger = {
+      info: vi.fn(),
+      error: vi.fn(),
+    }
+    const loggedService = withLogging(service, logger, () => `call-${++callNumber}`)
     const user = userEvent.setup()
 
-    render(<App inventoryService={service} />)
+    render(<App inventoryService={loggedService} />)
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
@@ -295,6 +321,12 @@ describe('App', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'MockInventoryService forced failure is enabled',
     )
+    expect(screen.getByRole('alert')).toHaveTextContent('Ref: call-2')
+    expect(logger.error).toHaveBeenCalledWith('inventory.service.failed', {
+      operation: 'updateVehicleAction',
+      correlationId: 'call-2',
+      error: 'MockInventoryService forced failure is enabled',
+    })
     expect(row).toHaveTextContent('Review')
     expect(row).toHaveTextContent('Existing note')
     expect(within(row).queryByText('Price Reduction Planned', {
@@ -314,6 +346,48 @@ describe('App', () => {
       action: 'Price Reduction Planned',
       note: 'New plan',
     })
+  })
+
+  it('confirms a successful save and displays its logged age from the injected clock', async () => {
+    const loggedAt = new Date(2026, 6, 10, 9)
+    const clock = vi.fn(() => loggedAt)
+    const vehicles = sampleVehicles.map((vehicle) =>
+      vehicle.vehicleId === 'vehicle-001'
+        ? {
+            ...vehicle,
+            currentAction: {
+              action: 'Price Reduction Planned',
+              note: 'Review this week',
+              loggedAt: new Date(loggedAt.getTime() - 3 * 24 * 60 * 60 * 1000)
+                .toISOString(),
+            },
+          }
+        : vehicle,
+    )
+    const service = createInventoryService(vi.fn().mockResolvedValue(vehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} clock={clock} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0004/ })
+    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    const actionDialog = screen.getByRole('dialog', {
+      name: 'Propose an action for STK-0004',
+    })
+    await user.selectOptions(
+      within(actionDialog).getByLabelText('Action'),
+      'Price Reduction Planned',
+    )
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    expect(await screen.findByText('Action saved')).toHaveAttribute('role', 'status')
+    expect(row).toHaveTextContent('Logged today')
+    expect(
+      within(screen.getByRole('row', { name: /STK-0001/ })).getByText(
+        'Logged 3 days ago',
+      ),
+    ).toBeInTheDocument()
+    expect(clock).toHaveBeenCalledTimes(2)
   })
 
   it('keeps the previous row action visible and disables controls while saving', async () => {
@@ -527,6 +601,95 @@ describe('App', () => {
       .toHaveAttribute('datetime', refreshedAt.toISOString())
   })
 
+  it('shows the default page and supports first, previous, numbered, next, and last-page navigation', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(createVehicles(200)))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
+    expect(screen.getByText('Showing 1-20 of 200')).toBeInTheDocument()
+    expect(within(table).getAllByRole('row')).toHaveLength(21)
+    expect(within(pager).getByText('Page 1 of 10')).toBeInTheDocument()
+    expect(within(pager).getAllByRole('option').map((option) => option.textContent))
+      .toEqual(['10', '20', '50', '100'])
+    expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
+    expect(within(table).queryByRole('row', { name: /STK-0021/ })).not.toBeInTheDocument()
+
+    await user.click(within(pager).getByRole('button', { name: 'Next page' }))
+    expect(screen.getByText('Showing 21-40 of 200')).toBeInTheDocument()
+    expect(within(pager).getByText('Page 2 of 10')).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /STK-0021/ })).toBeInTheDocument()
+
+    await user.click(within(pager).getByRole('button', { name: 'Page 5' }))
+    expect(within(pager).getAllByText('…')).toHaveLength(2)
+    expect(screen.getByText('Showing 81-100 of 200')).toBeInTheDocument()
+
+    await user.click(within(pager).getByRole('button', { name: 'Last page' }))
+    expect(screen.getByText('Showing 181-200 of 200')).toBeInTheDocument()
+    expect(within(pager).getByText('Page 10 of 10')).toBeInTheDocument()
+
+    await user.click(within(pager).getByRole('button', { name: 'First page' }))
+    expect(screen.getByText('Showing 1-20 of 200')).toBeInTheDocument()
+    await user.click(within(pager).getByRole('button', { name: 'Page 3' }))
+    await user.click(within(pager).getByRole('button', { name: 'Previous page' }))
+    expect(screen.getByText('Showing 21-40 of 200')).toBeInTheDocument()
+  })
+
+  it('changes page size, resets to page one when a filter changes, and does not persist paging state', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(createVehicles(45)))
+    const user = userEvent.setup()
+    const view = render(<App inventoryService={service} />)
+
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
+    await user.selectOptions(screen.getByLabelText('Rows per page'), '10')
+    expect(screen.getByText('Showing 1-10 of 45')).toBeInTheDocument()
+    expect(within(table).getAllByRole('row')).toHaveLength(11)
+    expect(within(pager).getByText('Page 1 of 5')).toBeInTheDocument()
+
+    await user.click(within(pager).getByRole('button', { name: 'Page 3' }))
+    expect(screen.getByText('Showing 21-30 of 45')).toBeInTheDocument()
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'STK-0045')
+
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(within(pager).getByText('Page 1 of 1')).toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /STK-0045/ })).toBeInTheDocument()
+
+    view.unmount()
+    render(<App inventoryService={service} />)
+
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+    expect(screen.getByLabelText('Rows per page')).toHaveValue('20')
+    expect(screen.getByText('Showing 1-20 of 45')).toBeInTheDocument()
+  })
+
+  it('clamps the current page when a refreshed inventory shrinks', async () => {
+    const getVehicles = vi.fn()
+      .mockResolvedValueOnce(createVehicles(45))
+      .mockResolvedValueOnce(createVehicles(15))
+    const service = createInventoryService(getVehicles)
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
+    await user.selectOptions(screen.getByLabelText('Rows per page'), '10')
+    await user.click(within(pager).getByRole('button', { name: 'Page 4' }))
+    expect(screen.getByText('Showing 31-40 of 45')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Showing 11-15 of 15')).toBeInTheDocument()
+      expect(within(pager).getByText('Page 2 of 2')).toBeInTheDocument()
+    })
+    expect(within(table).getAllByRole('row')).toHaveLength(6)
+    expect(getVehicles).toHaveBeenCalledTimes(2)
+  })
+
   it('filters inventory by search, make, model, age band, and aging-only', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
     const user = userEvent.setup()
@@ -657,6 +820,12 @@ describe('App', () => {
       .toBeInTheDocument()
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'no-match')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 0 of 0')
+    const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
+    expect(within(pager).getByText('No pages')).toBeInTheDocument()
+    expect(within(pager).getByRole('button', { name: 'First page' }))
+      .toBeDisabled()
+    expect(within(pager).getByRole('button', { name: 'Next page' }))
+      .toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Remove Data issues filter' }))
 

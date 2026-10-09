@@ -119,6 +119,31 @@
   white-space: normal;
 }
 
+.proposed-action-dialog {
+  position: fixed;
+  z-index: 10;
+  width: min(32rem, calc(100% - 2 * var(--page-gutter)));
+  max-width: none;
+  max-height: calc(100% - 2 * var(--page-gutter));
+  margin: auto;
+  padding: var(--space-5);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+
+.proposed-action-dialog::backdrop {
+  background: rgb(23 43 58 / 45%);
+}
+
+.proposed-action-dialog .proposed-action-form {
+  min-width: 0;
+  margin: 0;
+}
+
 .inventory-table tbody tr:hover {
   background: var(--color-surface-muted);
 }

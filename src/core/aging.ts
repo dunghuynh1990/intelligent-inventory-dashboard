@@ -197,6 +197,39 @@ export function getFreshnessLevel(lastRefreshedAt: Date, now: Date): FreshnessLe
   return 'normal'
 }
 
+export function formatActionLoggedAge(
+  loggedAt: string | undefined,
+  now: Date,
+): string | null {
+  if (loggedAt === undefined) {
+    return null
+  }
+
+  const loggedDate = new Date(loggedAt)
+  const nowTime = now.getTime()
+  if (!Number.isFinite(loggedDate.getTime()) || !Number.isFinite(nowTime)) {
+    return null
+  }
+
+  const loggedDay = Date.UTC(
+    loggedDate.getFullYear(),
+    loggedDate.getMonth(),
+    loggedDate.getDate(),
+  )
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+  const daysAgo = Math.floor((today - loggedDay) / millisecondsPerDay)
+  if (daysAgo < 0) {
+    return null
+  }
+  if (daysAgo === 0) {
+    return 'Logged today'
+  }
+  if (daysAgo === 1) {
+    return 'Logged yesterday'
+  }
+  return `Logged ${daysAgo} days ago`
+}
+
 export function getAvailableMakes(vehicles: Vehicle[]): string[] {
   return [...new Set(vehicles.map(({ make }) => make))].sort((left, right) =>
     left.localeCompare(right),

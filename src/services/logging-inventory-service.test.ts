@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Logger } from '../observability/logger'
 import { MockInventoryService } from './mock-inventory-service'
-import { withLogging } from './logging-inventory-service'
+import {
+  CorrelatedServiceError,
+  withLogging,
+} from './logging-inventory-service'
 
 describe('withLogging', () => {
   it('logs mock service calls with unique correlation IDs', async () => {
@@ -61,5 +64,34 @@ describe('withLogging', () => {
       correlationId: 'call-failed',
       error: 'Service unavailable',
     })
+  })
+
+  it('attaches the logged correlation ID to a failed action-save error', async () => {
+    const logger: Logger = {
+      info: vi.fn(),
+      error: vi.fn(),
+    }
+    const failure = new Error('Service unavailable')
+    const service = {
+      getVehicles: vi.fn().mockResolvedValue([]),
+      updateVehicleAction: vi.fn().mockRejectedValue(failure),
+    }
+    const loggedService = withLogging(service, logger, () => 'save-call-123')
+
+    const result = loggedService.updateVehicleAction('vehicle-001', {
+      action: 'Price Reduction Planned',
+    })
+
+    await expect(result).rejects.toMatchObject({
+      name: 'CorrelatedServiceError',
+      message: 'Service unavailable',
+      correlationId: 'save-call-123',
+    })
+    expect(logger.error).toHaveBeenCalledWith('inventory.service.failed', {
+      operation: 'updateVehicleAction',
+      correlationId: 'save-call-123',
+      error: 'Service unavailable',
+    })
+    await expect(result).rejects.toBeInstanceOf(CorrelatedServiceError)
   })
 })
