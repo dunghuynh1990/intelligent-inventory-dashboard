@@ -19,6 +19,16 @@ export type ActionFilter = 'any' | 'no-action' | 'has-action'
 export type FreshnessLevel = 'normal' | 'amber' | 'warning'
 export type PageSize = (typeof PAGE_SIZES)[number]
 
+export type InventoryPresetId =
+  | 'all-vehicles'
+  | 'needs-action'
+  | 'aging-stock'
+  | 'action-planned'
+  | 'turning-aging-this-week'
+  | 'approaching-90-days'
+  | 'data-issues'
+  | 'new-arrivals'
+
 export interface InventoryFilterCriteria {
   searchText: string
   make: string
@@ -28,6 +38,13 @@ export interface InventoryFilterCriteria {
   dataIssuesOnly: boolean
   turningAgingSoonOnly: boolean
   actionFilter?: ActionFilter
+}
+
+export interface InventoryPreset {
+  id: InventoryPresetId
+  label: string
+  filters: InventoryFilterCriteria
+  count: number
 }
 
 export interface InventorySummaryCounts {
@@ -56,6 +73,58 @@ export interface PaginatedItems<T> {
   totalItems: number
   totalPages: number
 }
+
+const noFilters: InventoryFilterCriteria = {
+  searchText: '',
+  make: '',
+  model: '',
+  ageBand: '',
+  agingOnly: false,
+  dataIssuesOnly: false,
+  turningAgingSoonOnly: false,
+  actionFilter: 'any',
+}
+
+const inventoryPresetDefinitions: ReadonlyArray<
+  Omit<InventoryPreset, 'count'>
+> = [
+  { id: 'all-vehicles', label: 'All vehicles', filters: noFilters },
+  {
+    id: 'needs-action',
+    label: 'Needs action',
+    filters: { ...noFilters, actionFilter: 'no-action' },
+  },
+  {
+    id: 'aging-stock',
+    label: 'Aging stock',
+    filters: { ...noFilters, ageBand: '>90' },
+  },
+  {
+    id: 'action-planned',
+    label: 'Action planned',
+    filters: { ...noFilters, actionFilter: 'has-action' },
+  },
+  {
+    id: 'turning-aging-this-week',
+    label: 'Turning aging this week',
+    filters: { ...noFilters, turningAgingSoonOnly: true },
+  },
+  {
+    id: 'approaching-90-days',
+    label: 'Approaching 90 days',
+    filters: { ...noFilters, ageBand: '61-90' },
+  },
+  {
+    id: 'data-issues',
+    label: 'Data issues',
+    filters: { ...noFilters, dataIssuesOnly: true },
+  },
+  {
+    id: 'new-arrivals',
+    label: 'New arrivals (0-30)',
+    filters: { ...noFilters, ageBand: '0-30' },
+  },
+]
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000
 const millisecondsPerMinute = 60 * 1000
@@ -339,6 +408,23 @@ export function getInventorySummary(vehicles: Vehicle[]): InventorySummaryCounts
   )
 }
 
+export function getInventoryPresets(vehicles: Vehicle[]): InventoryPreset[] {
+  return inventoryPresetDefinitions.map((preset) => ({
+    ...preset,
+    count: filterVehicles(vehicles, preset.filters).length,
+  }))
+}
+
+export function getActiveInventoryPresetId(
+  filters: InventoryFilterCriteria,
+): InventoryPresetId | null {
+  const activeFilterMatch = inventoryPresetDefinitions.find((preset) =>
+    haveSameFilters(filters, preset.filters),
+  )
+
+  return activeFilterMatch?.id ?? null
+}
+
 export function getAgeBandProfile(vehicles: Vehicle[]): AgeBandProfile {
   const counts: Record<AgeBand, number> = {
     '0-30': 0,
@@ -364,6 +450,22 @@ export function getAgeBandProfile(vehicles: Vehicle[]): AgeBandProfile {
   }))
 
   return { bands, knownAgeVehicles }
+}
+
+function haveSameFilters(
+  left: InventoryFilterCriteria,
+  right: InventoryFilterCriteria,
+): boolean {
+  return (
+    left.searchText === right.searchText &&
+    left.make === right.make &&
+    left.model === right.model &&
+    left.ageBand === right.ageBand &&
+    left.agingOnly === right.agingOnly &&
+    left.dataIssuesOnly === right.dataIssuesOnly &&
+    left.turningAgingSoonOnly === right.turningAgingSoonOnly &&
+    (left.actionFilter ?? 'any') === (right.actionFilter ?? 'any')
+  )
 }
 
 function getReferenceCalendarDay(referenceDate: Date): number {

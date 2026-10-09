@@ -317,6 +317,92 @@ describe('App', () => {
     expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
   })
 
+  it('shows counted preset views and replaces all active filters when a preset is selected', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+
+    const views = await screen.findByRole('region', { name: 'Inventory views' })
+    expect(within(views).getAllByRole('button')).toHaveLength(8)
+    expect(within(views).getByRole('button', { name: 'All vehicles (7)' }))
+      .toHaveAttribute('aria-pressed', 'true')
+    expect(within(views).getByRole('button', { name: 'Needs action (1)' }))
+      .toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'Aging stock (2)' }))
+      .toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'Action planned (1)' }))
+      .toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'Turning aging this week (1)' }))
+      .toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'Approaching 90 days (1)' }))
+      .toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'Data issues (3)' }))
+      .toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'New arrivals (0-30) (1)' }))
+      .toBeInTheDocument()
+    expect(within(views).queryByText('Custom filters')).not.toBeInTheDocument()
+
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
+    expect(within(views).queryByText('Custom filters')).not.toBeInTheDocument()
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', { name: 'Aging stock (2)' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('')
+    expect(screen.getByLabelText('Age band')).toHaveValue('>90')
+    expect(screen.getByText('Showing 1-2 of 2')).toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'Aging stock (2)' }))
+      .toHaveAttribute('aria-pressed', 'true')
+    expect(within(views).queryByText('Custom filters')).not.toBeInTheDocument()
+    const table = screen.getByRole('table', { name: 'Vehicle inventory' })
+    expect(within(table).getByRole('row', { name: /STK-0001/ }))
+      .toBeInTheDocument()
+    expect(within(table).getByRole('row', { name: /STK-0004/ }))
+      .toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', { name: 'All vehicles (7)' }))
+
+    expect(screen.getByLabelText('Age band')).toHaveValue('')
+    expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
+    expect(within(views).getByRole('button', { name: 'All vehicles (7)' }))
+      .toHaveAttribute('aria-pressed', 'true')
+
+    await user.click(within(views).getByRole('button', { name: 'Needs action (1)' }))
+    expect(screen.getByLabelText('Action')).toHaveValue('no-action')
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', { name: 'Action planned (1)' }))
+    expect(screen.getByLabelText('Action')).toHaveValue('has-action')
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', {
+      name: 'Turning aging this week (1)',
+    }))
+    expect(screen.getByRole('button', {
+      name: 'Remove Turning aging in 7 days filter',
+    })).toBeInTheDocument()
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', {
+      name: 'Approaching 90 days (1)',
+    }))
+    expect(screen.getByLabelText('Age band')).toHaveValue('61-90')
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', { name: 'Data issues (3)' }))
+    expect(screen.getByText('Showing 1-3 of 3')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', {
+      name: 'New arrivals (0-30) (1)',
+    }))
+    expect(screen.getByLabelText('Age band')).toHaveValue('0-30')
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(within(views).getByRole('button', { name: 'All vehicles (7)' }))
+    expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
+  })
+
   it('flags only aging actions logged more than 14 calendar days ago', async () => {
     const now = new Date()
     const loggedDaysAgo = (daysAgo: number) =>

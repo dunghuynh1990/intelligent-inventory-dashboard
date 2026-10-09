@@ -1,58 +1,67 @@
 # Active WBS Task
 
-> Execution snapshot for WBS 4.22. The repository owner invoked this gated Nice task after the Core UX gate was verified for WBS 4.21. A-04 and the linked baseline design choices remain unchanged; this task does not change the status of proposed CRs or decisions.
+> Execution snapshot for WBS 4.23. The Core UX gate was reported as passed for WBS 4.21. CR-12 is gated Nice scope; saved views remain deferred.
 
 ## Task
 
-- WBS ID: 4.22
-- Name: Build Age Profile and Summary Upgrade
+- WBS ID: 4.23
+- Name: Build Preset Views
 - Workstream: UI Implementation
 - Priority: Nice
 - Status: Complete
-- Planned effort: 1.00 hour
-- CR Ref: CR-10, CR-11
+- Planned effort: 0.75 hour
+- CR Ref: CR-12
 
 ## Objective
 
-Show the inventory distribution across age bands with counts, shares and a 90-day threshold marker; let managers quick-filter by band; and add aging-share and actioned-vehicle summary indicators.
+Add eight inventory preset filters. Each preset applies a complete filter set and displays its matching count; display Custom filters when no preset exactly matches the current filters.
 
 ## Linked acceptance criteria
 
-- AC-R2-13: The inventory summary shows the aging count.
-- AC-R2-19: Each age-band segment shows its count and share; selecting a band applies that age-band filter, and selecting it again clears it.
+- AC-R2-18: Given the `Turning aging in 7 days` card shows K, selecting it shows only those K vehicles and marks the card pressed; selecting it again clears the filter.
+- AC-R2-19: Each age-band segment shows its count and share; selecting a band applies the age-band filter, and selecting it again clears it.
+- C-29: Quick views, including preset views, replace the complete active filter set; filters combine with AND.
 
 ## Approved assumptions and task-scoped interpretations
 
-- The WBS 4.22 invocation authorizes only this task's gated Nice behavior; it does not change the approved requirements baseline or proposed CR/decision statuses.
-- Age bands use the existing boundary rules: 0-30, 31-60, 61-90 and over 90 days; exactly 90 days is not aging.
-- Band shares use vehicles with a valid derived age as the denominator. Missing, invalid and future entry-date records are excluded because they do not belong to an age band.
-- The visible profile ranges are themselves keyboard-accessible filter buttons, sized to their shares and labeled with range, count and share. The profile header shows the unknown-age data-issue count and clarifies that exactly 90 days is not aging.
-- Aging share is aging vehicles divided by all inventory vehicles. The actioned meter is aging vehicles with an action divided by all aging vehicles; a zero denominator displays 0%.
-- Age-band quick views replace the complete active filter set, as specified by C-29; selecting the currently selected band clears the filter set.
-- Counts and shares are inventory-wide and remain independent of the active list filters.
-- The 90-day threshold marker sits at the boundary between the 61-90 and over-90 bands.
+- The WBS 4.23 invocation authorizes CR-12's eight gated presets only; it does not change approved requirements or proposed CR/decision statuses.
+- Preset counts are calculated from the full loaded inventory, independent of active filters, using the existing pure `filterVehicles` rule.
+- The existing complete filter set is used for every preset. The eight views map as follows:
+  - All vehicles: no filters.
+  - Needs action: `actionFilter: no-action` (aging vehicles without a current action).
+  - Aging stock: age band `>90`.
+  - Action planned: `actionFilter: has-action`.
+  - Turning aging this week: existing seven-day early-warning filter (days 84-90).
+  - Approaching 90 days: existing age band `61-90`.
+  - Data issues: entry-date issues only.
+  - New arrivals (0-30): existing age band `0-30`.
+- A preset is active only when the complete current filter set matches its filter set; any unmatched filter combination is shown as Custom filters.
+- Preset selection replaces all current filters. Selecting All vehicles applies the empty filter set.
+- View selection and filters remain session-only and are not persisted.
+- The supplied view-strip reference informs presentation. The `Save as a view` control represents CR-13 saved views, explicitly deferred and not implemented by this task.
 
 ## Relevant design components
 
-- `src/core/aging.ts`: Pure age-band counts and valid-age share calculation.
-- `src/App.tsx`: Inventory-wide summary data and complete-filter-set band selection.
-- `src/components/InventorySummary.tsx` and `.css`: Age-profile bar/controls, threshold marker, aging-share card and actioned meter.
-- `src/core/aging.test.ts` and `src/App.test.tsx`: Pure profile and dashboard interaction coverage.
+- `src/core/aging.ts`: Pure complete filter definitions, preset counts, and active-preset matching.
+- `src/App.tsx`: Inventory-wide counts and preset selection state/filter dispatch.
+- `src/components/InventoryPresets.tsx` and `.css`: Counted horizontal view strip with active/custom state.
+- `src/core/aging.test.ts`, `src/App.test.tsx`: Preset-definition, count, replacement, selection, and custom-filter coverage.
 
 ## In scope
 
-- Show counts and valid-age shares for all four age bands.
-- Show and label the threshold between the 61-90 and over-90-day bands.
-- Toggle a selected age-band filter; replace other filters on selection and clear all filters on repeated selection.
-- Show aging share and an actioned meter in the inventory summary.
-- Add boundary/empty/invalid-age coverage and component interaction checks; update this snapshot, traceability and factual collaboration evidence.
+- Show all eight named preset views with dynamic counts.
+- Apply each preset as a complete replacement filter set.
+- Show active preset state and Custom filters when no preset exactly matches.
+- Follow the supplied horizontal view-strip design without adding saved-view behavior.
+- Update this snapshot, traceability, and factual collaboration evidence.
 
 ## Explicitly out of scope
 
-- Changing `docs/requirements-baseline.md`, `docs/wbs.md`, system design or the proposal status of linked CRs/decisions.
-- Preset views assigned to WBS 4.23, sorting assigned to WBS 4.24, CSV export, production targets or backend work.
-- Changing age-band/aging rules, adding action history or dependencies, or changing the service contract.
-- Unrelated worktree changes, staging, committing or pushing.
+- Saved views or `Save as a view` (CR-13 is Deferred).
+- Changing `docs/requirements-baseline.md`, `docs/wbs.md`, system design, CR-12 status, or the proposal status of related decisions.
+- Later WBS tasks such as sorting, exporting, print layout, or row density.
+- Persisting filters or presets, changing existing filter rules, backend work, or adding dependencies.
+- Unrelated worktree changes, staging, committing, or pushing.
 
 ## Files changed
 
@@ -61,22 +70,23 @@ Show the inventory distribution across age bands with counts, shares and a 90-da
 - `docs/ai/collaboration-log.md`
 - `src/App.tsx`, `src/App.test.tsx`
 - `src/core/aging.ts`, `src/core/aging.test.ts`
-- `src/components/InventorySummary.tsx`, `src/components/InventorySummary.css`
+- `src/components/InventoryPresets.tsx`, `src/components/InventoryPresets.css`
 
 ## Verification
 
-- The Core UX gate was reported as checked and passed before WBS 4.21 implementation.
-- Focused: `npm test -- --run --pool=threads --maxWorkers=1 src/core/aging.test.ts src/App.test.tsx` (2 files, 107 tests passed).
-- Full suite: `npm test -- --run --pool=threads --maxWorkers=1` (5 files, 127 tests passed).
-- `npm run lint`, `npm run build` and `git diff --check` passed.
-- Browser review showed the default 200-vehicle inventory and age profile; selecting 0-30 days showed 27 vehicles and selecting it again restored all 200. At a 375px viewport the age-profile section had no horizontal overflow.
-- Final diff reviewed. No files are staged, committed or pushed.
+- The Core UX gate was reported as passed before WBS 4.21.
+- Focused tests: `npm test -- --run --pool=forks --maxWorkers=1 src/core/aging.test.ts src/App.test.tsx` (2 files, 110 tests passed).
+- Full suite: `npm test -- --run --pool=forks --maxWorkers=1` (5 files, 130 tests passed).
+- `npm run lint`, `npm run build`, and `git diff --check` passed.
+- Browser review showed eight count-bearing preset buttons and a horizontally scrollable row; selecting Aging stock applied `>90` as the only filter and displayed 116 matching vehicles. At 375px the view row remained within the viewport while its items scrolled horizontally.
+- Final diff reviewed. No files are staged, committed, or pushed.
 
 ## Exit criteria
 
-- Each age band shows its count and share of vehicles with a valid age, with a labeled 90-day threshold.
-- Selecting an age band replaces the full filter set; selecting it again clears the set.
-- Summary shows aging share and an actioned meter, including empty/zero-denominator handling.
-- Focused/full tests, lint, build, browser review and final diff checks pass.
+- The eight presets appear with counts computed from the full inventory.
+- Selecting any preset applies its complete filter set and the active state is visible.
+- Custom filters appears when no preset exactly matches.
+- Saved views remain unbuilt.
+- Focused/full tests, lint, build, browser review, and final diff checks pass.
 
-Do not stage, commit or push.
+Do not stage, commit, or push.

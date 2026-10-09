@@ -9,9 +9,11 @@ import {
   getDaysUntilAging,
   getAgeBand,
   getAgeBandProfile,
+  getActiveInventoryPresetId,
   getAvailableMakes,
   getAvailableModels,
   getFreshnessLevel,
+  getInventoryPresets,
   getInventorySummary,
   isActionStale,
   isAging,
@@ -559,6 +561,60 @@ describe('inventory summary counts', () => {
       agingVehiclesWithAction: 1,
       dataIssueVehicles: 1,
       turningAgingSoonVehicles: 0,
+    })
+  })
+
+  describe('inventory presets', () => {
+    const presetVehicles: Vehicle[] = [
+      filterTestVehicles[0],
+      filterTestVehicles[1],
+      {
+        ...filterTestVehicles[2],
+        daysInStock: 84,
+        ageBand: '61-90',
+      },
+      filterTestVehicles[3],
+      {
+        ...filterTestVehicles[1],
+        vehicleId: 'vehicle-005',
+        currentAction: { action: 'Review' },
+      },
+    ]
+
+    it('defines eight complete preset filters with counts from the full inventory', () => {
+      const presets = getInventoryPresets(presetVehicles)
+
+      expect(presets.map(({ id, label, count }) => ({ id, label, count }))).toEqual([
+        { id: 'all-vehicles', label: 'All vehicles', count: 5 },
+        { id: 'needs-action', label: 'Needs action', count: 1 },
+        { id: 'aging-stock', label: 'Aging stock', count: 2 },
+        { id: 'action-planned', label: 'Action planned', count: 1 },
+        { id: 'turning-aging-this-week', label: 'Turning aging this week', count: 1 },
+        { id: 'approaching-90-days', label: 'Approaching 90 days', count: 1 },
+        { id: 'data-issues', label: 'Data issues', count: 1 },
+        { id: 'new-arrivals', label: 'New arrivals (0-30)', count: 1 },
+      ])
+      expect(presets.every(({ filters }) =>
+        Object.keys(filters).length === 8 &&
+        filters.searchText === '' &&
+        filters.make === '' &&
+        filters.model === '' &&
+        filters.actionFilter !== undefined,
+      )).toBe(true)
+    })
+
+    it('matches only complete preset filters and identifies custom filters', () => {
+      const presets = getInventoryPresets(presetVehicles)
+
+      expect(
+        presets.map(({ filters }) => getActiveInventoryPresetId(filters)),
+      ).toEqual(presets.map(({ id }) => id))
+      expect(
+        getActiveInventoryPresetId({
+          ...presets[0].filters,
+          make: 'Honda',
+        }),
+      ).toBeNull()
     })
   })
 

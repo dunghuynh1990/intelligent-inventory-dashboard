@@ -5,10 +5,13 @@ import {
   getAvailableMakes,
   getAvailableModels,
   getAgeBandProfile,
+  getActiveInventoryPresetId,
   getFreshnessLevel,
+  getInventoryPresets,
   getInventorySummary,
   paginateItems,
   type InventoryFilterCriteria,
+  type InventoryPreset,
   type PageSize,
 } from './core/aging'
 import type { InventoryService } from './services/inventory-service'
@@ -16,6 +19,7 @@ import type { AgeBand, Vehicle, VehicleAction } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
 import { InventoryFilters } from './components/InventoryFilters'
 import { InventoryPager } from './components/InventoryPager'
+import { InventoryPresets } from './components/InventoryPresets'
 import { InventorySummary } from './components/InventorySummary'
 import './App.css'
 
@@ -135,6 +139,11 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     [allVehicles],
   )
   const ageBandProfile = useMemo(() => getAgeBandProfile(allVehicles), [allVehicles])
+  const inventoryPresets = useMemo(
+    () => getInventoryPresets(allVehicles),
+    [allVehicles],
+  )
+  const activePresetId = getActiveInventoryPresetId(filters)
   const freshnessLevel = lastRefreshed
     ? getFreshnessLevel(lastRefreshed, currentTime)
     : 'normal'
@@ -222,6 +231,10 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
 
   const handleFiltersChange = (nextFilters: InventoryFilterCriteria) => {
     dispatch({ type: 'filtersChanged', filters: nextFilters })
+  }
+
+  const handlePresetSelect = (preset: InventoryPreset) => {
+    handleFiltersChange(preset.filters)
   }
 
   const handleSaveAction = async (vehicleId: string, action: VehicleAction) => {
@@ -366,6 +379,13 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                   turningAgingSoonOnly: !filters.turningAgingSoonOnly,
                 })
               }
+            />
+          )}
+          {vehicles !== null && (
+            <InventoryPresets
+              presets={inventoryPresets}
+              selectedPresetId={activePresetId}
+              onSelect={handlePresetSelect}
             />
           )}
           {vehicles !== null && (
