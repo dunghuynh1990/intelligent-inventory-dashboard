@@ -142,6 +142,9 @@ afterEach(() => {
   window.history.replaceState({}, '', '/')
 })
 
+const formFor = (stockNumber: string) =>
+  within(screen.getByRole('form', { name: `Propose an action for ${stockNumber}` }))
+
 describe('App', () => {
   it('shows loading and hides the inventory table until retrieval completes', async () => {
     let resolveVehicles: (vehicles: Vehicle[]) => void = () => {
@@ -772,6 +775,113 @@ describe('App', () => {
     expect(within(reloadedRow).getByRole('button', { name: 'Change' }))
       .toBeInTheDocument()
   }, 15000)
+
+  it('keeps the stored action when a forced service failure rejects a save, and nothing persists on reload', async () => {
+    const referenceDate = new Date(2024, 5, 1, 12)
+    const healthyService = new MockInventoryService({ referenceDate, delayMs: 0 })
+    const failingService = new MockInventoryService({
+      referenceDate,
+      delayMs: 0,
+      forceFailure: true,
+    })
+    const service: InventoryService = {
+      getVehicles: () => healthyService.getVehicles(),
+      updateVehicleAction: (vehicleId, action) =>
+        failingService.updateVehicleAction(vehicleId, action),
+    }
+    const user = userEvent.setup()
+
+    const view = render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0003/ })
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
+    await user.selectOptions(formFor('STK-0003').getByLabelText('Action'), 'Send to Auction')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'MockInventoryService forced failure is enabled',
+    )
+    expect(row).toHaveTextContent('No action yet')
+    expect(window.localStorage.getItem('intelligent-inventory-dashboard:vehicle-actions'))
+      .toBeNull()
+    view.unmount()
+
+    render(<App inventoryService={new MockInventoryService({ referenceDate, delayMs: 0 })} />)
+    const reloadedTable = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    expect(within(reloadedTable).getByRole('row', { name: /STK-0003/ }))
+      .toHaveTextContent('No action yet')
+  }, 15000)
+
+  it('replaces a saved action with a new one and persists only the replacement', async () => {
+    const referenceDate = new Date(2024, 5, 1, 12)
+    const createService = () => new MockInventoryService({ referenceDate, delayMs: 0 })
+    const user = userEvent.setup()
+    const view = render(<App inventoryService={createService()} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0003/ })
+
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
+    await user.selectOptions(formFor('STK-0003').getByLabelText('Action'), 'Send to Auction')
+    await user.type(formFor('STK-0003').getByLabelText('Note (optional)'), 'First plan')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+    await waitFor(() => expect(row).toHaveTextContent('Send to Auction'))
+
+    await user.click(within(row).getByRole('button', { name: 'Change' }))
+    await user.selectOptions(formFor('STK-0003').getByLabelText('Action'), 'Under Review')
+    await user.clear(formFor('STK-0003').getByLabelText('Note (optional)'))
+    await user.type(formFor('STK-0003').getByLabelText('Note (optional)'), 'Second plan')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+    await waitFor(() => expect(row).toHaveTextContent('Under Review'))
+    expect(row).not.toHaveTextContent('Send to Auction')
+    expect(row).not.toHaveTextContent('First plan')
+    view.unmount()
+
+    const stored = JSON.parse(
+      window.localStorage.getItem('intelligent-inventory-dashboard:vehicle-actions') ?? '{}',
+    ) as Record<string, { action: string; note?: string }>
+    expect(Object.keys(stored)).toEqual(['vehicle-003'])
+    expect(stored['vehicle-003']).toMatchObject({ action: 'Under Review', note: 'Second plan' })
+
+    render(<App inventoryService={createService()} />)
+    const reloadedRow = within(
+      await screen.findByRole('table', { name: 'Vehicle inventory' }),
+    ).getByRole('row', { name: /STK-0003/ })
+    expect(reloadedRow).toHaveTextContent('Under Review')
+    expect(reloadedRow).toHaveTextContent('Second plan')
+    expect(reloadedRow).not.toHaveTextContent('Send to Auction')
+  }, 20000)
+
+  it('keeps an existing action unchanged when validation rejects clearing the selection', async () => {
+    const updateVehicleAction = vi.fn<InventoryService['updateVehicleAction']>()
+    const service: InventoryService = {
+      getVehicles: vi.fn().mockResolvedValue(sampleVehicles),
+      updateVehicleAction,
+    }
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0001/ })
+    await user.click(within(row).getByRole('button', { name: 'Change' }))
+    await user.selectOptions(formFor('STK-0001').getByLabelText('Action'), '')
+    await user.click(screen.getByRole('button', { name: 'Save action' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Select an action before saving.')
+    expect(updateVehicleAction).not.toHaveBeenCalled()
+    expect(row).toHaveTextContent('Price Reduction Planned')
+    expect(row).toHaveTextContent('Review this week')
+  })
+
+  it('offers no action control on a vehicle with exactly 90 days in stock', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+
+    render(<App inventoryService={service} />)
+    const row = within(await screen.findByRole('table', { name: 'Vehicle inventory' }))
+      .getByRole('row', { name: /STK-0002/ })
+
+    expect(row).toHaveTextContent('90')
+    expect(within(row).queryByRole('button')).not.toBeInTheDocument()
+  })
 
   it('shows an empty-inventory message when the service returns no vehicles', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue([]))
