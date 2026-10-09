@@ -1052,6 +1052,36 @@ describe('App', () => {
     expect(screen.getByText(showing('Showing 1-20 of 45'))).toBeInTheDocument()
   })
 
+  it('returns to page one when any filter changes from page three', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(createVehicles(45)))
+    const user = userEvent.setup()
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+    await user.selectOptions(screen.getByLabelText('Rows per page'), '10')
+
+    const changes: Array<() => Promise<void>> = [
+      () => user.type(screen.getByRole('searchbox', { name: 'Search' }), 'STK'),
+      () => user.selectOptions(screen.getByLabelText('Make'), 'Toyota'),
+      () => user.selectOptions(screen.getByLabelText('Model'), 'Corolla'),
+      () => user.selectOptions(screen.getByLabelText('Age band'), '>90'),
+      () => user.selectOptions(screen.getByLabelText('Action'), 'has-action'),
+      () => user.click(screen.getByRole('checkbox', { name: 'Aging only' })),
+    ]
+
+    for (const change of changes) {
+      await user.click(
+        within(screen.getByRole('navigation', { name: 'Inventory pagination' }))
+          .getByRole('button', { name: 'Page 3' }),
+      )
+      expect(screen.getByText(showing('Showing 21-30 of 45'))).toBeInTheDocument()
+
+      await change()
+      expect(screen.getByRole('status')).toHaveTextContent(/Showing 1-\d+ of \d+/)
+
+      await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    }
+  }, 15000)
+
   it('clamps the current page when a refreshed inventory shrinks', async () => {
     const getVehicles = vi.fn()
       .mockResolvedValueOnce(createVehicles(45))

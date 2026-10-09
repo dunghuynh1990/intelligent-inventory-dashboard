@@ -38,5 +38,5 @@
 | 4.26 | E-11; no approved AC (deferred) | Undo is Dropped | No implementation; remains Dropped unless owner resolves service-contract requirement | Dropped |
 | 4.27 | E-12; no approved AC (deferred) | CSV export is Dropped | No implementation; remains Dropped; no export criterion exists | Dropped |
 | 5.6 | AC-R1-13/14/15/16, AC-R2-14/16, AC-R5-03; C-21/C-24 | Fixed-reference-date unit tests for CR core functions | Each linked unit criterion covered and deliberate failure demonstrated; full suite, lint and build | Not Started |
-| 5.7 | AC-R1-12/17/18, AC-R2-15, AC-R3-07/09, AC-R4-06, AC-R5-04/05/06; C-13/C-20/C-24/C-28 | Component tests for CR-visible behavior | Component assertions; built Nice criteria tested or manually checked; update Test level when moved to manual; full suite, lint and build | Not Started |
+| 5.7 | AC-R1-12/17/18, AC-R2-15, AC-R3-07/09, AC-R4-06, AC-R5-04/05/06; C-13/C-20/C-24/C-28 | Component tests for CR-visible behavior | Component assertions; built Nice criteria tested or manually checked; update Test level when moved to manual; full suite, lint and build | Complete |
 | 7.4 | CR README Draft #1-#15; C-23/C-26; no direct AC | Draft CR-specific README assumptions, switches and deferred items | Compare wording with built behavior and WBS/requirements; no application tests | Not Started |
