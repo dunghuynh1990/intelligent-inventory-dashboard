@@ -318,7 +318,7 @@
 
 .age-profile__range {
   overflow: hidden;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -336,12 +336,12 @@
 }
 
 .age-profile__values strong {
-  font-size: 18px;
+  font-size: 22px;
   font-variant-numeric: tabular-nums;
 }
 
 .age-profile__values > span {
-  font-size: 10px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 

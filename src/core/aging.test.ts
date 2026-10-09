@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Vehicle } from '../types/vehicle'
 import {
+  AGE_BANDS,
   calculateVehicleAge,
   classifyEntryDateIssue,
   formatElapsedRefreshTime,
@@ -21,8 +22,10 @@ import {
   isAging,
   paginateItems,
   sortRows,
+  type InventoryFilterCriteria,
   type PageSize,
 } from './aging'
+import { generateMockVehicles } from '../services/mock-vehicle-data'
 
 const referenceDate = new Date(2024, 5, 1, 0, 1)
 
@@ -410,6 +413,103 @@ describe('inventory filtering', () => {
     expect(results.at(-1)?.vehicleId).toBe('vehicle-200')
     expect(toyotaVehicles).toHaveLength(150)
     expect(toyotaVehicles.every(({ make }) => make === 'Toyota')).toBe(true)
+  })
+
+  describe('against the generated mock inventory', () => {
+    const generated = generateMockVehicles(referenceDate)
+    const knownAge = (vehicle: Vehicle) => vehicle.daysInStock ?? Number.NaN
+
+    it('returns the same vehicles as an independent count for each single filter', () => {
+      const cases: Array<[string, Partial<InventoryFilterCriteria>, (vehicle: Vehicle) => boolean]> = [
+        ['search accord', { searchText: 'accord' }, (v) =>
+          [v.stockNumber, v.vin ?? '', v.make, v.model].some((text) =>
+            text.toLowerCase().includes('accord'),
+          )],
+        ['make Toyota', { make: 'Toyota' }, (v) => v.make === 'Toyota'],
+        ['model Corolla', { model: 'Corolla' }, (v) => v.model === 'Corolla'],
+        ['band 31-60', { ageBand: '31-60' }, (v) =>
+          knownAge(v) >= 31 && knownAge(v) <= 60],
+        ['aging only', { agingOnly: true }, (v) => knownAge(v) > 90],
+      ]
+
+      for (const [label, criteria, expected] of cases) {
+        const results = filterVehicles(generated, { ...noFilters, ...criteria })
+        const expectedIds = generated
+          .filter(expected)
+          .map(({ vehicleId }) => vehicleId)
+          .sort()
+
+        expect(results.length, label).toBeGreaterThan(0)
+        expect(results.map(({ vehicleId }) => vehicleId), label).toEqual(expectedIds)
+      }
+    })
+
+    it('combines make and age band with AND on generated data', () => {
+      const results = filterVehicles(generated, {
+        ...noFilters,
+        make: 'Toyota',
+        ageBand: '>90',
+      })
+      const expectedCount = generated.filter(
+        (vehicle) => vehicle.make === 'Toyota' && knownAge(vehicle) > 90,
+      ).length
+
+      expect(expectedCount).toBeGreaterThan(0)
+      expect(results).toHaveLength(expectedCount)
+      expect(results.every(({ make, ageBand }) => make === 'Toyota' && ageBand === '>90'))
+        .toBe(true)
+    })
+
+    it('excludes data-issue vehicles from every age-band and aging filter', () => {
+      const issueIds = generated
+        .filter(({ entryDateIssue }) => entryDateIssue !== null)
+        .map(({ vehicleId }) => vehicleId)
+      const ageFiltered = [
+        ...filterVehicles(generated, { ...noFilters, agingOnly: true }),
+        ...AGE_BANDS.flatMap((ageBand) =>
+          filterVehicles(generated, { ...noFilters, ageBand }),
+        ),
+      ].map(({ vehicleId }) => vehicleId)
+
+      expect(issueIds).toHaveLength(3)
+      expect(ageFiltered.some((vehicleId) => issueIds.includes(vehicleId))).toBe(false)
+    })
+
+    it('lists each Toyota model exactly once for the Toyota make', () => {
+      const expectedModels = [
+        ...new Set(
+          generated.filter(({ make }) => make === 'Toyota').map(({ model }) => model),
+        ),
+      ].sort()
+
+      expect(getAvailableModels(generated, 'Toyota')).toEqual(expectedModels)
+    })
+
+    it('returns ascending vehicle-ID order for any input order, with and without filters', () => {
+      const reversed = [...generated].reverse()
+      const sortedIds = generated.map(({ vehicleId }) => vehicleId).sort()
+
+      expect(filterVehicles(reversed, noFilters).map(({ vehicleId }) => vehicleId))
+        .toEqual(sortedIds)
+      const toyotaIds = filterVehicles(reversed, { ...noFilters, make: 'Toyota' })
+        .map(({ vehicleId }) => vehicleId)
+      expect(toyotaIds).toEqual([...toyotaIds].sort())
+    })
+
+    it('restores every vehicle when all filters are cleared', () => {
+      const filtered = filterVehicles(generated, {
+        searchText: 'accord',
+        make: 'Honda',
+        model: 'Accord',
+        ageBand: '31-60',
+        agingOnly: false,
+        dataIssuesOnly: false,
+        turningAgingSoonOnly: false,
+      })
+
+      expect(filtered.length).toBeLessThan(generated.length)
+      expect(filterVehicles(generated, noFilters)).toHaveLength(generated.length)
+    })
   })
 })
 

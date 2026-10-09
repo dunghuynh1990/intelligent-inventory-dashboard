@@ -1,85 +1,71 @@
 # Active WBS Task
 
-> Execution snapshot for WBS 5.7.
+> Execution snapshot for WBS 5.2.
 
 ## Task
 
-- WBS ID: 5.7
-- Name: CR Component Tests
+- WBS ID: 5.2
+- Name: Filter Tests
 - Workstream: Testing
-- Priority: Should
+- Priority: Must
 - Status: Complete
-- Planned effort: 0.75 hour
-- CR Ref: CR Should criteria
+- Planned effort: 1.00 hour
 
 ## Objective
 
-Verify observable CR component behavior with component tests.
+Test the pure filter function directly for search, make, model, age band, aging only, combined filters, clearing filters and behavior against generated data.
 
 ## Linked acceptance criteria
 
-- AC-R1-12: Row shows the full VIN.
-- AC-R1-17: 200 vehicles show 20 rows, `Showing 1-20 of 200` and page 1 of 10.
-- AC-R1-18: Changing any filter from page 3 returns to page 1.
-- AC-R2-15: Data-issue rows show the issue, no Aging badge and no action control; the vehicle appears in the Data issues view.
-- AC-R3-07: Saved action shows `Logged today`, then `Logged 3 days ago`.
-- AC-R3-09: Save failure shows a reference matching the logged correlation ID.
-- AC-R4-06: Refresh failure keeps rows and the earlier Last refreshed time and shows a Retry banner.
-- AC-R5-04: 25 minutes after load, the header shows `25 min ago`, marked amber.
-- AC-R5-05: A 60-minute-old load shows a stale warning with `Refresh now` above the summary.
-- AC-R5-06: Header shows the reference date as DD-MMM-YYYY.
+- AC-R1-03: Free-text search over stock number, make, model and VIN, case-insensitive.
+- AC-R1-04: Make filter returns only that make, with a matching count.
+- AC-R1-05: Model filter returns only that model, with a matching count.
+- AC-R1-06: Age-band filter returns only that band, with a matching count.
+- AC-R1-07: Aging-only returns only vehicles over 90 days, with a matching count.
+- AC-R1-08: Combined filters use AND.
+- AC-R1-09: Clearing filters returns all vehicles (Component criterion; the pure-function equivalent is tested here, the UI is covered in `src/App.test.tsx`).
+- AC-R1-10: Model options depend on make.
+- AC-R1-11: Stable ascending vehicle-ID order.
 
 ## Approved assumptions and task-scoped interpretations
 
-- Related design choices: C-13, C-20, C-24, C-28.
-- Most criteria were already covered by component tests added with WBS 4.16-4.20; this task audits them against each criterion and fills gaps.
-- Owner decision for this task: AC-R2-15 is tested against the built behavior, where the Days cell shows the issue text instead of the literal `Unknown`. This deviation from the AC wording is reported, not changed.
-- No criterion was moved to manual verification, so no Test-level metadata changed.
+- Related design choices: C-09, C-10, C-17, C-18, C-21.
+- CR note in the WBS: VIN-search and action-filter tests belong to WBS 5.6 and are not extended here.
+- Existing fixture-based filter tests (from earlier tasks) already covered the single filters; this task adds the missing "behavior against generated data" and "clear filters" coverage.
+- Expected values for generated data are computed independently from vehicle fields, not by calling `filterVehicles`.
+- Search text `accord` is used for generated data because the seeded generator produces no Civic. The generator is unchanged (out of scope).
 
 ## Relevant design components
 
-- `src/App.test.tsx`: component tests for the listed criteria.
-- No production code is changed.
+- `src/core/aging.ts` (`filterVehicles`, `getAvailableModels`): unchanged.
+- `src/core/aging.test.ts`: new `against the generated mock inventory` group.
+- `src/services/mock-vehicle-data.ts`: used as test input only.
 
 ## In scope
 
-- Confirm each listed criterion has component coverage.
-- Add a test for AC-R1-18 covering every filter (search, make, model, age band, action, aging only).
+- Add generated-data tests for each single filter, combined AND filtering, data-issue exclusion from age filters, make-dependent model options, stable order for reversed input and clearing filters.
 
 ## Explicitly out of scope
 
-- Changing production code, `docs/requirements-baseline.md`, `docs/wbs.md` or system design.
-- Making the table show the literal `Unknown` for data-issue rows.
-- Unit-level CR criteria (WBS 5.6), README (WBS 7.4), staging, committing or pushing.
-
-## Coverage map (`src/App.test.tsx`)
-
-- AC-R1-12: "shows all returned vehicle details ..." and "highlights the matching VIN substring ...".
-- AC-R1-17: "shows the default page and supports first, previous, numbered, next, and last-page navigation".
-- AC-R1-18: "changes page size, resets to page one ..." (search) and new "returns to page one when any filter changes from page three".
-- AC-R2-15: "formats missing and future dates ...", "shows all returned vehicle details ..." and "replaces active filters with the Data issues view".
-- AC-R3-07: "confirms a successful save and displays its logged age from the injected clock".
-- AC-R3-09: "keeps the previous action on save failure and retries the replacement".
-- AC-R4-06: "keeps the last successful inventory and timestamp when refresh fails".
-- AC-R5-04 and AC-R5-06: "shows the reference date and amber elapsed freshness after 15 minutes".
-- AC-R5-05: "shows a stale-data warning and refresh control at 60 minutes".
+- Production code changes, VIN and action-filter tests (WBS 5.6), component tests (WBS 5.7), changing the generator, `docs/wbs.md`, requirements, system design, staging, committing or pushing.
+- `src/components/InventoryTable.css` has an unrelated modification that was already in the working tree; it is not part of this task.
 
 ## Files changed
 
-- `src/App.test.tsx`
+- `src/core/aging.test.ts`
 - `docs/active-task.md`
 - `docs/traceability.md`
 
 ## Verification
 
-- Focused: `npx vitest run src/App.test.tsx -t "returns to page one"` (1 file passed, 2 tests matched and passed).
-- Full suite: `npm test -- --run` (5 files, 141 tests passed).
-- `npm run lint` and `npm run build` passed.
+- Focused: `npx vitest run src/core/aging.test.ts` (89 tests passed).
+- Mutation check: inverting the make comparison in `filterVehicles` made 6 tests fail, including both new generated-data tests; the change was reverted.
+- Full suite: `npm test -- --run` (5 files, 147 tests passed).
+- `npm run lint` and `npm run build` passed (an initial build failed on a typing error in the new test and was fixed).
 
 ## Exit criteria
 
-- Listed component criteria have test coverage.
-- No Nice criterion needed a manual check for this task.
-- Test-level metadata is unchanged because nothing moved to manual.
+- Search, make, model, age band, aging only, combined filters, clear filters and generated data are covered by direct unit tests.
+- No production code changed.
 
 Do not stage, commit, or push.
