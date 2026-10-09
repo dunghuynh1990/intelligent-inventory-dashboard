@@ -235,6 +235,146 @@ export function filterVehicles(
     .sort((left, right) => left.vehicleId.localeCompare(right.vehicleId))
 }
 
+export const SORT_KEYS = [
+  'stockNumber',
+  'vin',
+  'make',
+  'model',
+  'entryDate',
+  'daysInStock',
+  'status',
+  'currentAction',
+] as const
+
+export type SortKey = (typeof SORT_KEYS)[number]
+export type SortDirection = 'asc' | 'desc'
+export interface VehicleSort {
+  key: SortKey
+  direction: SortDirection
+}
+
+const descendingFirstSortKeys: readonly SortKey[] = ['daysInStock', 'status']
+
+const sortDirectionWords: Record<SortKey, readonly [string, string]> = {
+  stockNumber: ['A-Z', 'Z-A'],
+  vin: ['A-Z', 'Z-A'],
+  make: ['A-Z', 'Z-A'],
+  model: ['A-Z', 'Z-A'],
+  entryDate: ['oldest first', 'newest first'],
+  daysInStock: ['fewest first', 'most first'],
+  status: ['in range first', 'aging first, then soon'],
+  currentAction: ['A-Z', 'Z-A'],
+}
+
+export const SORT_LABELS: Record<SortKey, string> = {
+  stockNumber: 'Stock no.',
+  vin: 'VIN',
+  make: 'Make',
+  model: 'Model',
+  entryDate: 'Entry date',
+  daysInStock: 'Days in stock',
+  status: 'Status',
+  currentAction: 'Current action',
+}
+
+export function getNextSort(
+  current: VehicleSort | null,
+  key: SortKey,
+): VehicleSort | null {
+  const first: SortDirection = descendingFirstSortKeys.includes(key) ? 'desc' : 'asc'
+  const second: SortDirection = first === 'asc' ? 'desc' : 'asc'
+
+  if (current?.key !== key) {
+    return { key, direction: first }
+  }
+
+  return current.direction === first ? { key, direction: second } : null
+}
+
+export function getSortLabel(sort: VehicleSort): string {
+  const [ascending, descending] = sortDirectionWords[sort.key]
+  return `${SORT_LABELS[sort.key]}, ${sort.direction === 'asc' ? ascending : descending}`
+}
+
+function getEntryDateTime(vehicle: Vehicle): number | null {
+  const match = isoCalendarDate.exec(vehicle.stockEntryDate?.trim() ?? '')
+  if (!match) {
+    return null
+  }
+
+  const [, year, month, day] = match
+  const date = new Date(0)
+  date.setUTCFullYear(Number(year), Number(month) - 1, Number(day))
+  return date.getUTCFullYear() === Number(year) &&
+    date.getUTCMonth() === Number(month) - 1 &&
+    date.getUTCDate() === Number(day)
+    ? date.getTime()
+    : null
+}
+
+function getSortValue(vehicle: Vehicle, key: SortKey): string | number | null {
+  switch (key) {
+    case 'stockNumber':
+      return vehicle.stockNumber
+    case 'vin':
+      return vehicle.vin
+    case 'make':
+      return vehicle.make
+    case 'model':
+      return vehicle.model
+    case 'entryDate':
+      return getEntryDateTime(vehicle)
+    case 'daysInStock':
+      return vehicle.daysInStock
+    case 'status':
+      return vehicle.isAging
+        ? 2
+        : getDaysUntilAging(vehicle.daysInStock) !== null
+          ? 1
+          : 0
+    case 'currentAction':
+      return vehicle.currentAction?.action ?? null
+  }
+}
+
+function compareVehicleId(left: Vehicle, right: Vehicle): number {
+  return left.vehicleId.localeCompare(right.vehicleId)
+}
+
+export function sortRows(vehicles: Vehicle[], sort: VehicleSort | null): Vehicle[] {
+  if (sort === null) {
+    return vehicles
+  }
+
+  const directionFactor = sort.direction === 'asc' ? 1 : -1
+  return [...vehicles].sort((left, right) => {
+    const leftValue = getSortValue(left, sort.key)
+    const rightValue = getSortValue(right, sort.key)
+
+    if (leftValue === null && rightValue === null) {
+      return compareVehicleId(left, right)
+    }
+    if (leftValue === null) {
+      return 1
+    }
+    if (rightValue === null) {
+      return -1
+    }
+
+    const comparison =
+      typeof leftValue === 'number' && typeof rightValue === 'number'
+        ? leftValue - rightValue
+        : String(leftValue).localeCompare(String(rightValue), 'en', {
+            numeric: true,
+            sensitivity: 'base',
+          })
+
+    return comparison === 0
+      ? compareVehicleId(left, right)
+      : comparison * directionFactor
+  })
+}
+
 export function paginateItems<T>(
   items: T[],
   requestedPage: number,

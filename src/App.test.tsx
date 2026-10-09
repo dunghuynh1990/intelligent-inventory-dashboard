@@ -122,6 +122,19 @@ function createVehicles(count: number): Vehicle[] {
   })
 }
 
+function showing(text: string) {
+  return (_content: string, element: Element | null) =>
+    element?.classList.contains('inventory-result-count') === true &&
+    element.textContent === `${text} vehicles`
+}
+
+function getStockOrder(table: HTMLElement): string[] {
+  return within(table)
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('rowheader')[0].textContent ?? '')
+}
+
 afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
@@ -184,10 +197,10 @@ describe('App', () => {
     expect(nonAgingVehicleRow).toHaveTextContent('No action')
     expect(within(nonAgingVehicleRow).queryByRole('button', { name: /action/i }))
       .not.toBeInTheDocument()
-    expect(within(agingVehicleRow).getByRole('button', { name: 'Edit action' }))
+    expect(within(agingVehicleRow).getByRole('button', { name: 'Change' }))
       .toBeInTheDocument()
     const agingWithoutActionRow = within(table).getByRole('row', { name: /STK-0004/ })
-    expect(within(agingWithoutActionRow).getByRole('button', { name: 'Propose action' }))
+    expect(within(agingWithoutActionRow).getByRole('button', { name: 'Log action' }))
       .toBeInTheDocument()
 
     const unknownAgeVehicleRow = within(table).getByRole('row', { name: /STK-0003/ })
@@ -299,12 +312,12 @@ describe('App', () => {
     })
     expect(bandButton).toHaveAttribute('aria-pressed', 'false')
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(bandButton)
 
     expect(bandButton).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
     const table = screen.getByRole('table', { name: 'Vehicle inventory' })
     expect(within(table).getByRole('row', { name: /STK-0005/ }))
       .toBeInTheDocument()
@@ -314,7 +327,7 @@ describe('App', () => {
     await user.click(bandButton)
 
     expect(bandButton).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-7 of 7'))).toBeInTheDocument()
   })
 
   it('shows counted preset views and replaces all active filters when a preset is selected', async () => {
@@ -345,13 +358,13 @@ describe('App', () => {
 
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
     expect(within(views).queryByText('Custom filters')).not.toBeInTheDocument()
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', { name: 'Aging stock (2)' }))
 
     expect(screen.getByRole('searchbox', { name: 'Search' })).toHaveValue('')
     expect(screen.getByLabelText('Age band')).toHaveValue('>90')
-    expect(screen.getByText('Showing 1-2 of 2')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-2 of 2'))).toBeInTheDocument()
     expect(within(views).getByRole('button', { name: 'Aging stock (2)' }))
       .toHaveAttribute('aria-pressed', 'true')
     expect(within(views).queryByText('Custom filters')).not.toBeInTheDocument()
@@ -364,17 +377,17 @@ describe('App', () => {
     await user.click(within(views).getByRole('button', { name: 'All vehicles (7)' }))
 
     expect(screen.getByLabelText('Age band')).toHaveValue('')
-    expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-7 of 7'))).toBeInTheDocument()
     expect(within(views).getByRole('button', { name: 'All vehicles (7)' }))
       .toHaveAttribute('aria-pressed', 'true')
 
     await user.click(within(views).getByRole('button', { name: 'Needs action (1)' }))
     expect(screen.getByLabelText('Action')).toHaveValue('no-action')
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', { name: 'Action planned (1)' }))
     expect(screen.getByLabelText('Action')).toHaveValue('has-action')
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', {
       name: 'Turning aging this week (1)',
@@ -382,25 +395,25 @@ describe('App', () => {
     expect(screen.getByRole('button', {
       name: 'Remove Turning aging in 7 days filter',
     })).toBeInTheDocument()
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', {
       name: 'Approaching 90 days (1)',
     }))
     expect(screen.getByLabelText('Age band')).toHaveValue('61-90')
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', { name: 'Data issues (3)' }))
-    expect(screen.getByText('Showing 1-3 of 3')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-3 of 3'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', {
       name: 'New arrivals (0-30) (1)',
     }))
     expect(screen.getByLabelText('Age band')).toHaveValue('0-30')
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
 
     await user.click(within(views).getByRole('button', { name: 'All vehicles (7)' }))
-    expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-7 of 7'))).toBeInTheDocument()
   })
 
   it('flags only aging actions logged more than 14 calendar days ago', async () => {
@@ -512,6 +525,32 @@ describe('App', () => {
     expect(screen.getByLabelText('Make')).toHaveValue('')
   })
 
+  it('opens the action editor inline under the row and closes it on Cancel', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const row = within(table).getByRole('row', { name: /STK-0004/ })
+
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
+    const form = within(table).getByRole('form', { name: 'Propose an action for STK-0004' })
+    expect(row.nextElementSibling).toContainElement(form)
+    expect(within(row).queryByRole('button', { name: 'Log action' })).not.toBeInTheDocument()
+    expect(within(form).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Choose an action...',
+      'Price Reduction Planned',
+      'Transfer to Another Site',
+      'Send to Auction',
+      'Promote in Campaign',
+      'Under Review',
+    ])
+
+    await user.click(within(form).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('form')).not.toBeInTheDocument()
+    expect(within(row).getByRole('button', { name: 'Log action' })).toBeInTheDocument()
+  })
+
   it('validates a missing action and does not save a note by itself', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
     const user = userEvent.setup()
@@ -520,9 +559,9 @@ describe('App', () => {
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
-    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
     expect(
-      screen.getByRole('dialog', { name: 'Propose an action for STK-0004' }),
+      screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
     ).toBeInTheDocument()
     await user.type(screen.getByLabelText('Note (optional)'), 'Review this week')
     await user.click(screen.getByRole('button', { name: 'Save action' }))
@@ -533,7 +572,7 @@ describe('App', () => {
     expect(within(row).getByText('No action yet')).toBeInTheDocument()
     expect(service.updateVehicleAction).not.toHaveBeenCalled()
     await user.keyboard('{Escape}')
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('form')).not.toBeInTheDocument()
   })
 
   it('keeps the previous action on save failure and retries the replacement', async () => {
@@ -564,7 +603,7 @@ describe('App', () => {
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
-    await user.click(within(row).getByRole('button', { name: 'Edit action' }))
+    await user.click(within(row).getByRole('button', { name: 'Change' }))
     const actionForm = within(
       screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
     )
@@ -625,8 +664,8 @@ describe('App', () => {
     render(<App inventoryService={service} clock={clock} />)
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const row = within(table).getByRole('row', { name: /STK-0004/ })
-    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
-    const actionDialog = screen.getByRole('dialog', {
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
+    const actionDialog = screen.getByRole('form', {
       name: 'Propose an action for STK-0004',
     })
     await user.selectOptions(
@@ -663,7 +702,7 @@ describe('App', () => {
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const row = within(table).getByRole('row', { name: /STK-0004/ })
 
-    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
     const actionForm = within(
       screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
     )
@@ -697,7 +736,7 @@ describe('App', () => {
     const firstTable = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const agingVehicleRow = within(firstTable).getByRole('row', { name: /STK-0003/ })
 
-    await user.click(within(agingVehicleRow).getByRole('button', { name: 'Propose action' }))
+    await user.click(within(agingVehicleRow).getByRole('button', { name: 'Log action' }))
     const actionForm = within(
       screen.getByRole('form', { name: 'Propose an action for STK-0003' }),
     )
@@ -716,7 +755,7 @@ describe('App', () => {
     const reloadedRow = within(reloadedTable).getByRole('row', { name: /STK-0003/ })
     expect(reloadedRow).toHaveTextContent('Price Reduction Planned')
     expect(reloadedRow).toHaveTextContent('Revisit next week')
-    expect(within(reloadedRow).getByRole('button', { name: 'Edit action' }))
+    expect(within(reloadedRow).getByRole('button', { name: 'Change' }))
       .toBeInTheDocument()
   }, 15000)
 
@@ -761,7 +800,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
     const row = within(screen.getByRole('table', { name: 'Vehicle inventory' }))
       .getByRole('row', { name: /STK-0004/ })
-    await user.click(within(row).getByRole('button', { name: 'Propose action' }))
+    await user.click(within(row).getByRole('button', { name: 'Log action' }))
     const actionForm = within(
       screen.getByRole('form', { name: 'Propose an action for STK-0004' }),
     )
@@ -940,32 +979,32 @@ describe('App', () => {
 
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
-    expect(screen.getByText('Showing 1-20 of 200')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-20 of 200'))).toBeInTheDocument()
     expect(within(table).getAllByRole('row')).toHaveLength(21)
-    expect(within(pager).getByText('Page 1 of 10')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 / 10')).toBeInTheDocument()
     expect(within(pager).getAllByRole('option').map((option) => option.textContent))
       .toEqual(['10', '20', '50', '100'])
     expect(within(table).getByRole('row', { name: /STK-0001/ })).toBeInTheDocument()
     expect(within(table).queryByRole('row', { name: /STK-0021/ })).not.toBeInTheDocument()
 
     await user.click(within(pager).getByRole('button', { name: 'Next page' }))
-    expect(screen.getByText('Showing 21-40 of 200')).toBeInTheDocument()
-    expect(within(pager).getByText('Page 2 of 10')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 21-40 of 200'))).toBeInTheDocument()
+    expect(screen.getByText('Page 2 / 10')).toBeInTheDocument()
     expect(within(table).getByRole('row', { name: /STK-0021/ })).toBeInTheDocument()
 
-    await user.click(within(pager).getByRole('button', { name: 'Page 5' }))
+    await user.click(within(pager).getByRole('button', { name: 'Page 4' }))
     expect(within(pager).getAllByText('…')).toHaveLength(2)
-    expect(screen.getByText('Showing 81-100 of 200')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 61-80 of 200'))).toBeInTheDocument()
 
     await user.click(within(pager).getByRole('button', { name: 'Last page' }))
-    expect(screen.getByText('Showing 181-200 of 200')).toBeInTheDocument()
-    expect(within(pager).getByText('Page 10 of 10')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 181-200 of 200'))).toBeInTheDocument()
+    expect(screen.getByText('Page 10 / 10')).toBeInTheDocument()
 
     await user.click(within(pager).getByRole('button', { name: 'First page' }))
-    expect(screen.getByText('Showing 1-20 of 200')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-20 of 200'))).toBeInTheDocument()
     await user.click(within(pager).getByRole('button', { name: 'Page 3' }))
     await user.click(within(pager).getByRole('button', { name: 'Previous page' }))
-    expect(screen.getByText('Showing 21-40 of 200')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 21-40 of 200'))).toBeInTheDocument()
   })
 
   it('changes page size, resets to page one when a filter changes, and does not persist paging state', async () => {
@@ -976,16 +1015,16 @@ describe('App', () => {
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
     const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
     await user.selectOptions(screen.getByLabelText('Rows per page'), '10')
-    expect(screen.getByText('Showing 1-10 of 45')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-10 of 45'))).toBeInTheDocument()
     expect(within(table).getAllByRole('row')).toHaveLength(11)
-    expect(within(pager).getByText('Page 1 of 5')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 / 5')).toBeInTheDocument()
 
     await user.click(within(pager).getByRole('button', { name: 'Page 3' }))
-    expect(screen.getByText('Showing 21-30 of 45')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 21-30 of 45'))).toBeInTheDocument()
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'STK-0045')
 
-    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
-    expect(within(pager).getByText('Page 1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-1 of 1'))).toBeInTheDocument()
+    expect(screen.queryByText('Page 1 / 1')).not.toBeInTheDocument()
     expect(within(table).getByRole('row', { name: /STK-0045/ })).toBeInTheDocument()
 
     view.unmount()
@@ -993,7 +1032,7 @@ describe('App', () => {
 
     await screen.findByRole('table', { name: 'Vehicle inventory' })
     expect(screen.getByLabelText('Rows per page')).toHaveValue('20')
-    expect(screen.getByText('Showing 1-20 of 45')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 1-20 of 45'))).toBeInTheDocument()
   })
 
   it('clamps the current page when a refreshed inventory shrinks', async () => {
@@ -1009,16 +1048,91 @@ describe('App', () => {
     const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
     await user.selectOptions(screen.getByLabelText('Rows per page'), '10')
     await user.click(within(pager).getByRole('button', { name: 'Page 4' }))
-    expect(screen.getByText('Showing 31-40 of 45')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 31-40 of 45'))).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Refresh' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Showing 11-15 of 15')).toBeInTheDocument()
-      expect(within(pager).getByText('Page 2 of 2')).toBeInTheDocument()
+      expect(screen.getByText(showing('Showing 11-15 of 15'))).toBeInTheDocument()
+      expect(screen.getByText('Page 2 / 2')).toBeInTheDocument()
     })
     expect(within(table).getAllByRole('row')).toHaveLength(6)
     expect(getVehicles).toHaveBeenCalledTimes(2)
+  })
+
+  it('sorts by Days in stock, reflects state in headers and the order note, and resets', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const header = within(table).getByRole('columnheader', { name: /Days in stock/ })
+    const sortButton = within(header).getByRole('button')
+    const defaultOrder = getStockOrder(table)
+    expect(header).toHaveAttribute('aria-sort', 'none')
+    expect(screen.getByText(/Default order/)).toBeInTheDocument()
+
+    await user.click(sortButton)
+    expect(header).toHaveAttribute('aria-sort', 'descending')
+    expect(getStockOrder(table)).toEqual([
+      'STK-0001', 'STK-0004', 'STK-0002', 'STK-0005',
+      'STK-0003', 'STK-0006', 'STK-0007',
+    ])
+    expect(screen.getByText('Days in stock, most first')).toBeInTheDocument()
+
+    await user.click(sortButton)
+    expect(header).toHaveAttribute('aria-sort', 'ascending')
+    expect(getStockOrder(table)).toEqual([
+      'STK-0005', 'STK-0002', 'STK-0001', 'STK-0004',
+      'STK-0003', 'STK-0006', 'STK-0007',
+    ])
+
+    await user.click(sortButton)
+    expect(header).toHaveAttribute('aria-sort', 'none')
+    expect(getStockOrder(table)).toEqual(defaultOrder)
+
+    await user.click(within(table).getByRole('button', { name: 'VIN' }))
+    await user.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(getStockOrder(table)).toEqual(defaultOrder)
+    expect(within(table).getByRole('columnheader', { name: 'VIN' })).toHaveAttribute(
+      'aria-sort',
+      'none',
+    )
+  })
+
+  it('does not persist the sort across sessions and returns to page one when sorting', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(createVehicles(45)))
+    const user = userEvent.setup()
+    const view = render(<App inventoryService={service} />)
+
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const pager = screen.getByRole('navigation', { name: 'Inventory pagination' })
+    await user.click(within(pager).getByRole('button', { name: 'Page 2' }))
+    await user.click(within(table).getByRole('button', { name: 'Make' }))
+    expect(screen.getByText(showing('Showing 1-20 of 45'))).toBeInTheDocument()
+
+    view.unmount()
+    render(<App inventoryService={service} />)
+    const freshTable = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    expect(within(freshTable).getByRole('columnheader', { name: 'Make' })).toHaveAttribute(
+      'aria-sort',
+      'none',
+    )
+  })
+
+  it('navigates pages from the compact page navigator above the table', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(createVehicles(45)))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+    await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const mini = screen.getByRole('navigation', { name: 'Page navigation' })
+    expect(within(mini).getByText('Page 1 / 3')).toBeInTheDocument()
+    expect(within(mini).getByRole('button', { name: 'Previous page' })).toBeDisabled()
+
+    await user.click(within(mini).getByRole('button', { name: 'Next page' }))
+    expect(within(mini).getByText('Page 2 / 3')).toBeInTheDocument()
+    expect(screen.getByText(showing('Showing 21-40 of 45'))).toBeInTheDocument()
   })
 
   it('filters inventory by search, make, model, age band, and aging-only', async () => {

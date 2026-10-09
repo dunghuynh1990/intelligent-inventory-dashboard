@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { CorrelatedServiceError } from '../services/logging-inventory-service'
 import type { Vehicle, VehicleAction } from '../types/vehicle'
 import './ProposedActionForm.css'
@@ -10,7 +10,13 @@ type ProposedActionFormProps = {
   onCancel: () => void
 }
 
-const actionOptions = ['Price Reduction Planned']
+const actionOptions = [
+  'Price Reduction Planned',
+  'Transfer to Another Site',
+  'Send to Auction',
+  'Promote in Campaign',
+  'Under Review',
+]
 
 export function ProposedActionForm({
   vehicle,
@@ -20,14 +26,19 @@ export function ProposedActionForm({
 }: ProposedActionFormProps) {
   const currentAction = vehicle.currentAction?.action
   const [selectedAction, setSelectedAction] = useState(
-    currentAction === actionOptions[0] ? currentAction : '',
+    currentAction && actionOptions.includes(currentAction) ? currentAction : '',
   )
   const [note, setNote] = useState(vehicle.currentAction?.note ?? '')
   const [validationError, setValidationError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const selectRef = useRef<HTMLSelectElement>(null)
   const actionId = `proposed-action-${vehicle.vehicleId}`
   const noteId = `proposed-action-note-${vehicle.vehicleId}`
   const validationErrorId = `${actionId}-error`
+
+  useEffect(() => {
+    selectRef.current?.focus()
+  }, [])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -56,18 +67,40 @@ export function ProposedActionForm({
     }
   }
 
+  const daysText =
+    vehicle.daysInStock === null ? '' : `, ${vehicle.daysInStock} days in stock`
+
   return (
     <form
       className="proposed-action-form"
-      aria-labelledby={`${actionId}-heading`}
+      aria-label={`Propose an action for ${vehicle.stockNumber}`}
       onSubmit={handleSubmit}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !isSaving) {
+          onCancel()
+        }
+      }}
     >
-      <h3 id={`${actionId}-heading`}>Propose an action for {vehicle.stockNumber}</h3>
+      <div className="proposed-action-form__title">
+        <span>
+          <b>{vehicle.currentAction ? 'Change action' : 'Log action'}</b>
+          <span aria-hidden="true">&nbsp;·&nbsp;</span>
+          {vehicle.stockNumber} {vehicle.make} {vehicle.model}
+          {daysText}
+        </span>
+        {vehicle.currentAction && (
+          <span>
+            Current: <b>{vehicle.currentAction.action}</b>
+          </span>
+        )}
+      </div>
       <div className="proposed-action-form__field">
         <label htmlFor={actionId}>Action</label>
         <select
+          ref={selectRef}
           id={actionId}
           aria-describedby={validationError ? validationErrorId : undefined}
+          aria-invalid={validationError ? true : undefined}
           value={selectedAction}
           required
           disabled={isSaving}
@@ -81,24 +114,22 @@ export function ProposedActionForm({
             setSaveError(null)
           }}
         >
-          <option value="">Select an action</option>
+          <option value="">Choose an action...</option>
           {actionOptions.map((action) => (
             <option key={action} value={action}>
               {action}
             </option>
           ))}
         </select>
-        {validationError && (
-          <p className="proposed-action-form__error" id={validationErrorId} role="alert">
-            {validationError}
-          </p>
-        )}
       </div>
       <div className="proposed-action-form__field">
-        <label htmlFor={noteId}>Note (optional)</label>
-        <textarea
+        <label htmlFor={noteId}>
+          Note <span className="proposed-action-form__optional">(optional)</span>
+        </label>
+        <input
           id={noteId}
-          rows={2}
+          type="text"
+          placeholder="For example: reduce by 5% on Friday"
           value={note}
           disabled={isSaving}
           onChange={(event) => {
@@ -107,11 +138,6 @@ export function ProposedActionForm({
           }}
         />
       </div>
-      {saveError && (
-        <p className="proposed-action-form__error" role="alert">
-          {saveError}
-        </p>
-      )}
       <div className="proposed-action-form__buttons">
         <button className="action-save-button" type="submit" disabled={isSaving}>
           {isSaving ? 'Saving…' : saveError ? 'Retry save' : 'Save action'}
@@ -120,6 +146,16 @@ export function ProposedActionForm({
           Cancel
         </button>
       </div>
+      {validationError && (
+        <p className="proposed-action-form__error" id={validationErrorId} role="alert">
+          {validationError}
+        </p>
+      )}
+      {saveError && (
+        <p className="proposed-action-form__error" role="alert">
+          {saveError}
+        </p>
+      )}
     </form>
   )
 }

@@ -9,10 +9,15 @@ import {
   getFreshnessLevel,
   getInventoryPresets,
   getInventorySummary,
+  getNextSort,
+  getSortLabel,
   paginateItems,
+  sortRows,
   type InventoryFilterCriteria,
   type InventoryPreset,
   type PageSize,
+  type SortKey,
+  type VehicleSort,
 } from './core/aging'
 import type { InventoryService } from './services/inventory-service'
 import type { AgeBand, Vehicle, VehicleAction } from './types/vehicle'
@@ -21,7 +26,7 @@ import {
   InventoryFilterChips,
   InventoryFilters,
 } from './components/InventoryFilters'
-import { InventoryPager } from './components/InventoryPager'
+import { InventoryMiniPager, InventoryPager } from './components/InventoryPager'
 import { InventoryPresets } from './components/InventoryPresets'
 import { InventorySummary } from './components/InventorySummary'
 import './App.css'
@@ -48,6 +53,7 @@ const noVehicles: Vehicle[] = []
 type DashboardState = {
   vehicles: Vehicle[] | null
   filters: InventoryFilterCriteria
+  sort: VehicleSort | null
   currentPage: number
   pageSize: PageSize
 }
@@ -55,6 +61,8 @@ type DashboardState = {
 type DashboardAction =
   | { type: 'inventoryLoaded'; vehicles: Vehicle[] }
   | { type: 'filtersChanged'; filters: InventoryFilterCriteria }
+  | { type: 'sortChanged'; key: SortKey }
+  | { type: 'sortReset' }
   | { type: 'pageChanged'; page: number }
   | { type: 'pageSizeChanged'; pageSize: PageSize }
   | { type: 'vehicleActionChanged'; vehicleId: string; action: VehicleAction }
@@ -62,6 +70,7 @@ type DashboardAction =
 const initialDashboardState: DashboardState = {
   vehicles: null,
   filters: emptyFilters,
+  sort: null,
   currentPage: 1,
   pageSize: 20,
 }
@@ -75,6 +84,10 @@ function dashboardReducer(
       return clampPage({ ...state, vehicles: action.vehicles })
     case 'filtersChanged':
       return { ...state, filters: action.filters, currentPage: 1 }
+    case 'sortChanged':
+      return { ...state, sort: getNextSort(state.sort, action.key), currentPage: 1 }
+    case 'sortReset':
+      return { ...state, sort: null, currentPage: 1 }
     case 'pageChanged':
       return clampPage({ ...state, currentPage: action.page })
     case 'pageSizeChanged':
@@ -118,7 +131,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
   const [actionSaveConfirmation, setActionSaveConfirmation] = useState(false)
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null)
   const [savingVehicleId, setSavingVehicleId] = useState<string | null>(null)
-  const { vehicles, filters, currentPage, pageSize } = dashboardState
+  const { vehicles, filters, sort, currentPage, pageSize } = dashboardState
   const allVehicles = vehicles ?? noVehicles
   const makes = useMemo(() => getAvailableMakes(allVehicles), [allVehicles])
   const models = useMemo(
@@ -129,9 +142,13 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     () => filterVehicles(allVehicles, filters),
     [allVehicles, filters],
   )
+  const sortedVehicles = useMemo(
+    () => sortRows(filteredVehicles, sort),
+    [filteredVehicles, sort],
+  )
   const page = useMemo(
-    () => paginateItems(filteredVehicles, currentPage, pageSize),
-    [filteredVehicles, currentPage, pageSize],
+    () => paginateItems(sortedVehicles, currentPage, pageSize),
+    [sortedVehicles, currentPage, pageSize],
   )
   const firstResult =
     page.totalItems === 0 ? 0 : (page.currentPage - 1) * page.pageSize + 1
@@ -139,7 +156,6 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     page.totalItems === 0
       ? 0
       : (page.currentPage - 1) * page.pageSize + page.items.length
-  const resultCount = `Showing ${firstResult}-${lastResult} of ${page.totalItems}`
   const summaryCounts = useMemo(
     () => getInventorySummary(allVehicles),
     [allVehicles],
@@ -407,13 +423,43 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               <div className="inventory-results">
                 <div className="inventory-results__toolbar">
                   <p className="inventory-result-count" role="status">
-                    {resultCount}
+                    Showing{' '}
+                    <b>
+                      {firstResult}-{lastResult}
+                    </b>{' '}
+                    of <b>{page.totalItems}</b> vehicles
                   </p>
                   {vehicles.length > 0 && (
                     <InventoryFilterChips
                       filters={filters}
                       onChange={handleFiltersChange}
                     />
+                  )}
+                  {filteredVehicles.length > 0 && (
+                    <div className="inventory-results__tools">
+                      <p className="inventory-order-note">
+                        {sort ? (
+                          <>
+                            Sorted by <b>{getSortLabel(sort)}</b>
+                            <button
+                              type="button"
+                              onClick={() => dispatch({ type: 'sortReset' })}
+                            >
+                              Reset
+                            </button>
+                          </>
+                        ) : (
+                          'Default order: vehicle ID'
+                        )}
+                      </p>
+                      <InventoryMiniPager
+                        currentPage={page.currentPage}
+                        totalPages={page.totalPages}
+                        onPageChange={(nextPage) =>
+                          dispatch({ type: 'pageChanged', page: nextPage })
+                        }
+                      />
+                    </div>
                   )}
                 </div>
                 {vehicles.length === 0 ? (
@@ -451,6 +497,8 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                     <InventoryTable
                       vehicles={page.items}
                       searchText={filters.searchText}
+                      sort={sort}
+                      onSort={(key) => dispatch({ type: 'sortChanged', key })}
                       actionAgeReferenceTime={currentTime}
                       editingVehicleId={editingVehicleId}
                       isSaving={savingVehicleId !== null}
@@ -461,6 +509,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                     <InventoryPager
                       currentPage={page.currentPage}
                       pageSize={page.pageSize}
+                      totalItems={page.totalItems}
                       totalPages={page.totalPages}
                       onPageChange={(nextPage) =>
                         dispatch({ type: 'pageChanged', page: nextPage })

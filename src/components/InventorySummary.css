@@ -5,12 +5,12 @@
 .inventory-summary h2 {
   margin: 0 0 var(--space-3);
   color: var(--color-text);
-  font-size: 1.125rem;
+  font-size: 18px;
 }
 
 .inventory-summary__cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--space-4);
   margin: 0;
 }
@@ -19,7 +19,7 @@
   display: grid;
   align-content: center;
   gap: var(--space-2);
-  min-height: 6rem;
+  min-height: 96px;
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -29,14 +29,14 @@
 
 .inventory-summary__card dt {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .inventory-summary__card dd {
   margin: 0;
   color: var(--color-text);
-  font-size: 1.75rem;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -45,7 +45,7 @@
 .inventory-summary__card--meter dd {
   display: grid;
   gap: var(--space-2);
-  font-size: 1rem;
+  font-size: 16px;
 }
 
 .inventory-summary__card--meter progress {
@@ -55,13 +55,13 @@
 
 .inventory-summary__meter-share {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .age-profile {
   margin-top: var(--space-4);
-  padding: 1.125rem 1.375rem 1.25rem;
+  padding: 18px 22px 20px;
   border: 1px solid #dce2e8;
   border-radius: var(--radius-lg);
   background: #fff;
@@ -71,42 +71,42 @@
 .age-profile__header {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.875rem;
+  gap: 16px;
+  margin-bottom: 14px;
 }
 
 .age-profile__header h3 {
   margin: 0;
   flex: 0 0 auto;
   color: #182235;
-  font-size: 1rem;
+  font-size: 16px;
 }
 
 .age-profile__header p {
   margin: 0;
   color: #536b8d;
-  font-size: 0.8125rem;
+  font-size: 13px;
 }
 
 .age-profile__unknown {
   margin-left: auto;
-  padding: 0.1875rem 0.625rem;
+  padding: 3px 10px;
   border: 1px solid #ffb4a8;
   border-radius: 999px;
   color: #bf2616;
   background: #fff3f0;
-  font-size: 0.75rem;
+  font-size: 12px;
   white-space: nowrap;
 }
 
 .age-profile__chart {
   position: relative;
-  padding-bottom: 1.65rem;
+  padding-bottom: 26.4px;
 }
 
 .age-profile__bar {
   display: flex;
-  min-height: 4rem;
+  min-height: 64px;
 }
 
 .age-profile__segment {
@@ -114,12 +114,12 @@
   flex: 0 0 auto;
   flex-direction: column;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 4px;
   min-width: 0;
-  padding: 0.5rem 0.7rem;
+  padding: 8px 11.2px;
   overflow: hidden;
   border: 0;
-  border-right: 0.2rem solid #fff;
+  border-right: 3.2px solid #fff;
   border-radius: var(--radius-sm);
   color: #192336;
   font: inherit;
@@ -151,9 +151,9 @@
   background-image: repeating-linear-gradient(
     135deg,
     transparent 0,
-    transparent 0.5rem,
-    rgb(175 67 0 / 28%) 0.5rem,
-    rgb(175 67 0 / 28%) 0.85rem
+    transparent 8px,
+    rgb(175 67 0 / 28%) 8px,
+    rgb(175 67 0 / 28%) 13.6px
   );
 }
 
@@ -171,7 +171,7 @@
 
 .age-profile__range {
   overflow: hidden;
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -184,24 +184,24 @@
 .age-profile__values {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
+  gap: 6.4px;
   white-space: nowrap;
 }
 
 .age-profile__values strong {
-  font-size: 1.25rem;
+  font-size: 20px;
   font-variant-numeric: tabular-nums;
 }
 
 .age-profile__values > span {
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
 .age-profile__threshold {
   position: absolute;
-  top: -0.5rem;
-  height: calc(4rem + 1rem);
+  top: -8px;
+  height: calc(64px + 16px);
   width: 2px;
   border-left: 2px dashed #172033;
   transform: translateX(-50%);
@@ -210,13 +210,13 @@
 
 .age-profile__threshold-label {
   position: absolute;
-  top: calc(100% - 1.45rem);
+  top: calc(100% - 23.2px);
   transform: translateX(-100%);
   color: #172033;
-  padding: 0 0.25rem;
+  padding: 0 4px;
   background: #fff;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
   pointer-events: none;
@@ -251,7 +251,7 @@
 
 .inventory-summary__attention-card strong {
   color: var(--color-text);
-  font-size: 1.5rem;
+  font-size: 24px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -267,14 +267,14 @@
   color: var(--color-primary-hover);
 }
 
-@media (max-width: 40rem) {
+@media (max-width: 640px) {
   .inventory-summary__cards {
     grid-template-columns: 1fr;
     gap: var(--space-3);
   }
 
   .inventory-summary__card {
-    min-height: 5rem;
+    min-height: 80px;
   }
 
   .age-profile {
@@ -295,16 +295,16 @@
   }
 
   .age-profile__bar {
-    min-height: 4.5rem;
+    min-height: 72px;
   }
 
   .age-profile__segment {
-    padding: 0.35rem;
+    padding: 5.6px;
   }
 
   .age-profile__range,
   .age-profile__values > span {
-    font-size: 0.5625rem;
+    font-size: 9px;
   }
 
   .age-profile__range-full {
@@ -321,14 +321,14 @@
   }
 
   .age-profile__values strong {
-    font-size: 1rem;
+    font-size: 16px;
   }
 
   .age-profile__threshold {
-    height: 4.5rem;
+    height: 72px;
   }
 
   .age-profile__threshold-label {
-    font-size: 0.75rem;
+    font-size: 12px;
   }
 }

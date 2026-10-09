@@ -1,8 +1,12 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import {
+  SORT_KEYS,
+  SORT_LABELS,
   formatActionLoggedAge,
   getDaysUntilAging,
   isActionStale,
+  type SortKey,
+  type VehicleSort,
 } from '../core/aging'
 import type { Vehicle, VehicleAction } from '../types/vehicle'
 import { ProposedActionForm } from './ProposedActionForm'
@@ -11,55 +15,95 @@ import './InventoryTable.css'
 type InventoryTableProps = {
   vehicles: Vehicle[]
   searchText: string
+  sort: VehicleSort | null
   actionAgeReferenceTime: Date
   editingVehicleId: string | null
   isSaving: boolean
+  onSort: (key: SortKey) => void
   onEditAction: (vehicle: Vehicle) => void
   onCancelAction: () => void
   onSaveAction: (vehicleId: string, action: VehicleAction) => Promise<void>
 }
 
+const columnClassNames: Record<SortKey, string> = {
+  stockNumber: 'stock',
+  vin: 'vin',
+  make: 'make',
+  model: 'model',
+  entryDate: 'entry',
+  daysInStock: 'days',
+  status: 'status',
+  currentAction: 'action',
+}
+
+function Svg({ size, children }: { size: number; children: ReactNode }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  )
+}
+
 export function InventoryTable({
   vehicles,
   searchText,
+  sort,
   actionAgeReferenceTime,
   editingVehicleId,
   isSaving,
+  onSort,
   onEditAction,
   onCancelAction,
   onSaveAction,
 }: InventoryTableProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
-  const editingVehicle = vehicles.find(
-    (vehicle) => vehicle.vehicleId === editingVehicleId,
-  )
-
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (dialog && !dialog.open) {
-      if (typeof dialog.showModal === 'function') {
-        dialog.showModal()
-      } else {
-        dialog.setAttribute('open', '')
-      }
-    }
-  }, [editingVehicle])
-
   return (
-    <>
-      <div className="inventory-table-scroll">
+    <div className="inventory-table-scroll">
         <table className="inventory-table">
           <caption>Vehicle inventory</caption>
           <thead>
             <tr>
-              <th scope="col">Stock number</th>
-              <th scope="col">VIN</th>
-              <th scope="col">Make</th>
-              <th scope="col">Model</th>
-              <th scope="col">Entry date</th>
-              <th scope="col">Days in stock</th>
-              <th scope="col">Status</th>
-              <th scope="col">Current action</th>
+              {SORT_KEYS.map((key) => {
+                const direction = sort?.key === key ? sort.direction : null
+                return (
+                  <th
+                    key={key}
+                    scope="col"
+                    className={`inventory-table__th inventory-table__th--${columnClassNames[key]}`}
+                    aria-sort={
+                      direction === 'asc'
+                        ? 'ascending'
+                        : direction === 'desc'
+                          ? 'descending'
+                          : 'none'
+                    }
+                  >
+                    <button
+                      className="inventory-table__sort"
+                      type="button"
+                      data-direction={direction ?? undefined}
+                      onClick={() => onSort(key)}
+                    >
+                      <span className="inventory-table__sort-label">
+                        {SORT_LABELS[key]}
+                      </span>
+                      <span className="inventory-table__sort-icon" aria-hidden="true">
+                        <i />
+                        <i />
+                      </span>
+                    </button>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -75,91 +119,148 @@ export function InventoryTable({
                 vehicle.isAging &&
                 vehicle.currentAction !== null &&
                 isActionStale(vehicle.currentAction.loggedAt, actionAgeReferenceTime)
+              const daysOver = (vehicle.daysInStock ?? 0) - 90
+              const isEditing = vehicle.vehicleId === editingVehicleId
 
               return (
-                <tr key={vehicle.vehicleId}>
-                  <th scope="row">{vehicle.stockNumber}</th>
-                  <td>{renderVin(vehicle.vin, searchText)}</td>
-                  <td>{vehicle.make}</td>
+                <Fragment key={vehicle.vehicleId}>
+                <tr
+                  className={[
+                    vehicle.isAging ? 'inventory-table__row--aging' : '',
+                    isEditing ? 'inventory-table__row--open' : '',
+                  ].join(' ').trim() || undefined}
+                >
+                  <th scope="row" className="inventory-table__stock">
+                    {vehicle.stockNumber}
+                  </th>
+                  <td className="inventory-table__vin" title={vehicle.vin}>
+                    {renderVin(vehicle.vin, searchText)}
+                  </td>
+                  <td className="inventory-table__make">{vehicle.make}</td>
                   <td>{vehicle.model}</td>
-                  <td>{formatEntryDate(vehicle.stockEntryDate)}</td>
-                  <td>{vehicle.daysInStock ?? 'Unknown'}</td>
+                  <td className="inventory-table__date">
+                    {formatEntryDate(vehicle.stockEntryDate)}
+                  </td>
+                  <td className="inventory-table__days">
+                    {vehicle.daysInStock ?? (
+                      <span className="inventory-table__unknown">Unknown</span>
+                    )}
+                  </td>
                   <td>
                     {vehicle.entryDateIssue ? (
                       <span className="data-issue-badge">{vehicle.entryDateIssue}</span>
                     ) : vehicle.isAging ? (
-                      <span className="aging-badge">Aging</span>
-                    ) : (
-                      <span aria-label="Not aging">—</span>
-                    )}
-                    {daysUntilAging !== null && (
+                      <>
+                        <span className="aging-badge">
+                          <Svg size={12}>
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 7v5l3 2" />
+                          </Svg>
+                          Aging
+                        </span>
+                        <span className="inventory-table__over">
+                          +{daysOver} {daysOver === 1 ? 'day' : 'days'} over
+                        </span>
+                      </>
+                    ) : daysUntilAging !== null ? (
                       <span className="early-warning-badge">
                         Due in {daysUntilAging}{' '}
                         {daysUntilAging === 1 ? 'day' : 'days'}
                       </span>
+                    ) : (
+                      <span className="inventory-table__in-range">In range</span>
                     )}
                   </td>
                   <td>
-                    {vehicle.currentAction ? (
-                      <span className="inventory-action">
-                        <span>{vehicle.currentAction.action}</span>
-                        {vehicle.currentAction.note && (
-                          <small>{vehicle.currentAction.note}</small>
-                        )}
-                        {actionLoggedAge && <small>{actionLoggedAge}</small>}
-                        {actionIsStale && (
-                          <small className="inventory-action__stale-flag">
-                            check progress
-                          </small>
-                        )}
-                      </span>
-                    ) : vehicle.isAging ? (
-                      'No action yet'
-                    ) : (
-                      'No action'
-                    )}
-                    {vehicle.isAging && (
-                      <button
-                        className="action-edit-button"
-                        type="button"
-                        disabled={isSaving}
-                        onClick={() => onEditAction(vehicle)}
-                      >
-                        {vehicle.currentAction ? 'Edit action' : 'Propose action'}
-                      </button>
-                    )}
+                    <div className="inventory-action-cell">
+                      {vehicle.currentAction ? (
+                        <span className="inventory-action">
+                          <span className="inventory-action__text">
+                            <span className="inventory-action__dot" aria-hidden="true" />
+                            {vehicle.currentAction.action}
+                          </span>
+                          {(actionLoggedAge || actionIsStale) && (
+                            <span
+                              className={`inventory-action__meta${
+                                actionIsStale ? ' inventory-action__meta--stale' : ''
+                              }`}
+                            >
+                              {actionLoggedAge && <small>{actionLoggedAge}</small>}
+                              {actionIsStale && (
+                                <small className="inventory-action__stale-flag">
+                                  check progress
+                                </small>
+                              )}
+                            </span>
+                          )}
+                          {vehicle.currentAction.note && (
+                            <small
+                              className="inventory-action__note"
+                              title={vehicle.currentAction.note}
+                            >
+                              {vehicle.currentAction.note}
+                            </small>
+                          )}
+                        </span>
+                      ) : vehicle.isAging ? (
+                        <span className="inventory-action__needs">
+                          <Svg size={15}>
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M12 8v5M12 16.5v.01" />
+                          </Svg>
+                          No action yet
+                        </span>
+                      ) : (
+                        <span className="inventory-action__none">
+                          <span aria-hidden="true">-</span>
+                          <span className="inventory-table__sr-only">No action</span>
+                        </span>
+                      )}
+                      {vehicle.isAging && !isEditing && (
+                        <button
+                          className={`action-edit-button${
+                            vehicle.currentAction ? '' : ' action-edit-button--primary'
+                          }`}
+                          type="button"
+                          disabled={isSaving}
+                          onClick={() => onEditAction(vehicle)}
+                        >
+                          {vehicle.currentAction ? (
+                            <Svg size={13}>
+                              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                            </Svg>
+                          ) : (
+                            <Svg size={13}>
+                              <path d="M12 5v14M5 12h14" />
+                            </Svg>
+                          )}
+                          {vehicle.currentAction ? 'Change' : 'Log action'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
+                {isEditing && (
+                  <tr
+                    className="inventory-table__editor-row"
+                    aria-label="Action editor"
+                  >
+                    <td colSpan={SORT_KEYS.length}>
+                      <ProposedActionForm
+                        vehicle={vehicle}
+                        isSaving={isSaving}
+                        onSave={onSaveAction}
+                        onCancel={onCancelAction}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               )
             })}
           </tbody>
         </table>
-      </div>
-      {editingVehicle && (
-        <dialog
-          ref={dialogRef}
-          className="proposed-action-dialog"
-          aria-modal="true"
-          aria-labelledby={`proposed-action-${editingVehicle.vehicleId}-heading`}
-          onCancel={onCancelAction}
-          onKeyDown={(event) => {
-            if (
-              event.key === 'Escape' &&
-              typeof event.currentTarget.showModal !== 'function'
-            ) {
-              onCancelAction()
-            }
-          }}
-        >
-          <ProposedActionForm
-            vehicle={editingVehicle}
-            isSaving={isSaving}
-            onSave={onSaveAction}
-            onCancel={onCancelAction}
-          />
-        </dialog>
-      )}
-    </>
+    </div>
   )
 }
 

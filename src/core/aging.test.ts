@@ -15,9 +15,12 @@ import {
   getFreshnessLevel,
   getInventoryPresets,
   getInventorySummary,
+  getNextSort,
+  getSortLabel,
   isActionStale,
   isAging,
   paginateItems,
+  sortRows,
   type PageSize,
 } from './aging'
 
@@ -407,6 +410,82 @@ describe('inventory filtering', () => {
     expect(results.at(-1)?.vehicleId).toBe('vehicle-200')
     expect(toyotaVehicles).toHaveLength(150)
     expect(toyotaVehicles.every(({ make }) => make === 'Toyota')).toBe(true)
+  })
+})
+
+function sortVehicle(
+  vehicleId: string,
+  daysInStock: number | null,
+  overrides: Partial<Vehicle> = {},
+): Vehicle {
+  return {
+    vehicleId,
+    stockNumber: vehicleId.toUpperCase(),
+    vin: `VIN-${vehicleId}`,
+    make: 'Ford',
+    model: 'Escape',
+    stockEntryDate: null,
+    currentAction: null,
+    daysInStock,
+    isAging: daysInStock !== null && daysInStock > 90,
+    ageBand: null,
+    entryDateIssue: null,
+    ...overrides,
+  }
+}
+
+describe('inventory sorting', () => {
+  const rows = [
+    sortVehicle('v1', 10),
+    sortVehicle('v2', 40),
+    sortVehicle('v3', null),
+    sortVehicle('v4', 40),
+  ]
+  const ids = (vehicles: Vehicle[]) => vehicles.map((vehicle) => vehicle.vehicleId)
+
+  it('sorts days ascending with unknown last and ties in vehicle ID order', () => {
+    expect(ids(sortRows(rows, { key: 'daysInStock', direction: 'asc' })))
+      .toEqual(['v1', 'v2', 'v4', 'v3'])
+  })
+
+  it('sorts days descending with unknown still last', () => {
+    expect(ids(sortRows(rows, { key: 'daysInStock', direction: 'desc' })))
+      .toEqual(['v2', 'v4', 'v1', 'v3'])
+  })
+
+  it('returns the input unchanged without a sort and does not mutate it', () => {
+    expect(sortRows(rows, null)).toBe(rows)
+    sortRows(rows, { key: 'daysInStock', direction: 'desc' })
+    expect(ids(rows)).toEqual(['v1', 'v2', 'v3', 'v4'])
+  })
+
+  it('sorts text, entry date, status and action columns', () => {
+    const mixed = [
+      sortVehicle('a', 100, { make: 'toyota', stockEntryDate: '2024-01-05', currentAction: { action: 'Wholesale' } }),
+      sortVehicle('b', 95, { make: 'Audi', stockEntryDate: 'bad', currentAction: null }),
+      sortVehicle('c', 85, { make: 'Honda', stockEntryDate: '2024-03-01', currentAction: { action: 'Auction' } }),
+      sortVehicle('d', 20, { make: 'BMW', stockEntryDate: '2024-02-01' }),
+    ]
+    expect(ids(sortRows(mixed, { key: 'make', direction: 'asc' }))).toEqual(['b', 'd', 'c', 'a'])
+    expect(ids(sortRows(mixed, { key: 'entryDate', direction: 'asc' }))).toEqual(['a', 'd', 'c', 'b'])
+    expect(ids(sortRows(mixed, { key: 'entryDate', direction: 'desc' }))).toEqual(['c', 'd', 'a', 'b'])
+    expect(ids(sortRows(mixed, { key: 'status', direction: 'desc' }))).toEqual(['a', 'b', 'c', 'd'])
+    expect(ids(sortRows(mixed, { key: 'currentAction', direction: 'asc' }))).toEqual(['c', 'a', 'b', 'd'])
+  })
+
+  it('cycles direction and clears on the third click', () => {
+    const first = getNextSort(null, 'make')
+    expect(first).toEqual({ key: 'make', direction: 'asc' })
+    const second = getNextSort(first, 'make')
+    expect(second).toEqual({ key: 'make', direction: 'desc' })
+    expect(getNextSort(second, 'make')).toBeNull()
+    expect(getNextSort(second, 'vin')).toEqual({ key: 'vin', direction: 'asc' })
+    expect(getNextSort(null, 'daysInStock')).toEqual({ key: 'daysInStock', direction: 'desc' })
+  })
+
+  it('describes the active sort', () => {
+    expect(getSortLabel({ key: 'vin', direction: 'desc' })).toBe('VIN, Z-A')
+    expect(getSortLabel({ key: 'daysInStock', direction: 'desc' })).toBe('Days in stock, most first')
   })
 })
 
