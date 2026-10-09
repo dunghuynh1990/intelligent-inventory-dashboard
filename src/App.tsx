@@ -280,8 +280,8 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     <div className="dashboard-shell">
       <header className="dashboard-header">
         <div className="dashboard-header__content">
-          <h1>Intelligent Inventory</h1>
-          <p>Dealership vehicle overview</p>
+          <p>Dealership stock workspace</p>
+          <h1>Vehicle inventory</h1>
         </div>
         <div className="dashboard-header__refresh">
           <div className="dashboard-header__reference-date">
@@ -325,17 +325,14 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
       </header>
       <main className="dashboard-main">
         <section id="inventory-section" className="inventory-section" aria-labelledby="inventory-title" aria-busy={isLoading}>
-          <div className="inventory-section__heading">
-            <div>
-              <h2 id="inventory-title">Inventory</h2>
-              <p>Vehicle stock and current proposed action</p>
-            </div>
-            {isLoading && vehicles !== null && (
-              <p className="inventory-status" role="status">
-                Refreshing inventory…
-              </p>
-            )}
-          </div>
+          <h2 id="inventory-title" className="inventory-section__sr-only">
+            Inventory
+          </h2>
+          {isLoading && vehicles !== null && (
+            <p className="inventory-status" role="status">
+              Refreshing inventory…
+            </p>
+          )}
 
           {vehicles === null && isLoading && (
             <p className="inventory-status" role="status">
@@ -385,6 +382,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               ageBandProfile={ageBandProfile}
               selectedAgeBand={filters.ageBand}
               isTurningAgingSoonOnly={filters.turningAgingSoonOnly}
+              isDataIssuesOnly={filters.dataIssuesOnly}
               onSelectAgeBand={(ageBand: AgeBand) =>
                 handleFiltersChange(
                   filters.ageBand === ageBand
@@ -392,8 +390,12 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                     : { ...emptyFilters, ageBand },
                 )
               }
-              onShowDataIssues={() =>
-                handleFiltersChange({ ...emptyFilters, dataIssuesOnly: true })
+              onToggleDataIssues={() =>
+                handleFiltersChange(
+                  filters.dataIssuesOnly
+                    ? emptyFilters
+                    : { ...emptyFilters, dataIssuesOnly: true },
+                )
               }
               onToggleTurningAgingSoon={() =>
                 handleFiltersChange({

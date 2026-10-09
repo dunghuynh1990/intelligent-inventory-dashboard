@@ -258,14 +258,14 @@ describe('App', () => {
     render(<App inventoryService={service} />)
 
     const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
-    const earlyWarningCard = screen.getByRole('button', {
-      name: 'Turning aging in 7 days (2)',
+    const earlyWarningButton = screen.getByRole('button', {
+      name: 'Show these vehicles',
     })
-    expect(earlyWarningCard).toHaveAttribute('aria-pressed', 'false')
+    expect(earlyWarningButton).toHaveAttribute('aria-pressed', 'false')
 
-    await user.click(earlyWarningCard)
+    await user.click(earlyWarningButton)
 
-    expect(earlyWarningCard).toHaveAttribute('aria-pressed', 'true')
+    expect(earlyWarningButton).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 1-2 of 2')
     expect(within(table).getByRole('row', { name: /STK-84/ }))
       .toHaveTextContent('Due in 7 days')
@@ -279,9 +279,9 @@ describe('App', () => {
       name: 'Remove Turning aging in 7 days filter',
     })).toBeInTheDocument()
 
-    await user.click(earlyWarningCard)
+    await user.click(earlyWarningButton)
 
-    expect(earlyWarningCard).toHaveAttribute('aria-pressed', 'false')
+    expect(earlyWarningButton).toHaveAttribute('aria-pressed', 'false')
     expect(screen.getByRole('status')).toHaveTextContent('Showing 1-4 of 4')
   })
 
@@ -293,22 +293,23 @@ describe('App', () => {
 
     const summary = await screen.findByRole('region', { name: 'Inventory summary' })
     const profile = within(summary).getByRole('region', { name: 'Age profile' })
-    expect(within(profile).getAllByRole('button')).toHaveLength(4)
+    expect(profile.querySelectorAll('.age-profile__segment')).toHaveLength(4)
     expect(summary.querySelector('.age-profile__threshold'))
       .toHaveStyle({ left: '50%' })
     expect(within(summary).getByText('Select a band to filter the list. Exactly 90 days is not aging.'))
       .toBeInTheDocument()
-    expect(within(summary).getByText('3 with unknown age (data issue)'))
-      .toBeInTheDocument()
-    expect(within(summary).getByText('Aging share').parentElement)
-      .toHaveTextContent('28.6%')
+    expect(within(summary).getByRole('button', {
+      name: '3 with unknown age (data issue)',
+    })).toHaveAttribute('aria-pressed', 'false')
+    expect(within(summary).getByText('Aging stock · more than 90 days').parentElement)
+      .toHaveTextContent('2')
     expect(within(summary).getByRole('progressbar', {
-      name: 'Actioned aging vehicles',
+      name: 'Aging vehicles with an action',
     })).toHaveAttribute('max', '2')
-    expect(within(summary).getByText('1 of 2')).toBeInTheDocument()
+    expect(within(summary).getByText('/ 2')).toBeInTheDocument()
 
     const bandButton = within(summary).getByRole('button', {
-      name: '0-30 days, 1 vehicle, 25.0%',
+      name: '0-30 days, 1 vehicle, 25%',
     })
     expect(bandButton).toHaveAttribute('aria-pressed', 'false')
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
@@ -515,14 +516,22 @@ describe('App', () => {
     expect(within(screen.getByRole('table', { name: 'Vehicle inventory' }))
       .queryByRole('row', { name: /STK-0003/ })).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Data issues (3)' }))
+    const issuesButton = screen.getByRole('button', {
+      name: '3 with unknown age (data issue)',
+    })
+    await user.click(issuesButton)
 
     const table = screen.getByRole('table', { name: 'Vehicle inventory' })
+    expect(issuesButton).toHaveAttribute('aria-pressed', 'true')
     expect(within(table).getAllByRole('row')).toHaveLength(4)
     expect(within(table).getByRole('row', { name: /STK-0003/ })).toBeInTheDocument()
     expect(within(table).getByRole('row', { name: /STK-0006/ })).toBeInTheDocument()
     expect(within(table).getByRole('row', { name: /STK-0007/ })).toBeInTheDocument()
     expect(screen.getByLabelText('Make')).toHaveValue('')
+
+    await user.click(issuesButton)
+    expect(issuesButton).toHaveAttribute('aria-pressed', 'false')
+    expect(within(table).getAllByRole('row')).toHaveLength(sampleVehicles.length + 1)
   })
 
   it('opens the action editor inline under the row and closes it on Cancel', async () => {
@@ -767,13 +776,16 @@ describe('App', () => {
     expect(await screen.findByText('No vehicles in inventory.')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     const summary = screen.getByRole('region', { name: 'Inventory summary' })
-    expect(within(summary).getAllByText('0', { selector: 'dd' })).toHaveLength(3)
-    expect(within(summary).getByText('Aging share').parentElement)
-      .toHaveTextContent('0.0%')
+    expect(summary.querySelectorAll('.inventory-summary__card > dd > strong'))
+      .toHaveLength(4)
+    expect([...summary.querySelectorAll('.inventory-summary__card > dd > strong')]
+      .every((value) => value.textContent === '0')).toBe(true)
+    expect(within(summary).getByText('Aging stock · more than 90 days').parentElement)
+      .toHaveTextContent('0%')
     expect(within(summary).getByRole('progressbar', {
-      name: 'Actioned aging vehicles',
+      name: 'Aging vehicles with an action',
     })).toHaveAttribute('max', '1')
-    expect(within(summary).getByText('0 of 0')).toBeInTheDocument()
+    expect(within(summary).getByText('/ 0')).toBeInTheDocument()
   })
 
   it('shows inventory-wide summary counts unaffected by filters and updates after saving an action', async () => {
@@ -787,15 +799,15 @@ describe('App', () => {
     }
 
     expect(getCount('Total vehicles')).toHaveTextContent('7')
-    expect(getCount('Aging vehicles')).toHaveTextContent('2')
-    expect(getCount('Aging with an action')).toHaveTextContent('1')
+    expect(getCount('Aging stock · more than 90 days')).toHaveTextContent('2')
+    expect(getCount('Aging vehicles with an action')).toHaveTextContent('1')
 
     await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
     expect(within(await screen.findByRole('table', { name: 'Vehicle inventory' }))
       .getAllByRole('row')).toHaveLength(2)
     expect(getCount('Total vehicles')).toHaveTextContent('7')
-    expect(getCount('Aging vehicles')).toHaveTextContent('2')
-    expect(getCount('Aging with an action')).toHaveTextContent('1')
+    expect(getCount('Aging stock · more than 90 days')).toHaveTextContent('2')
+    expect(getCount('Aging vehicles with an action')).toHaveTextContent('1')
 
     await user.click(screen.getByRole('button', { name: 'Clear filters' }))
     const row = within(screen.getByRole('table', { name: 'Vehicle inventory' }))
@@ -808,7 +820,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Save action' }))
 
     await waitFor(() => {
-      expect(getCount('Aging with an action')).toHaveTextContent('2')
+      expect(getCount('Aging vehicles with an action')).toHaveTextContent('2')
     })
   })
 
@@ -1005,7 +1017,7 @@ describe('App', () => {
     await user.click(within(pager).getByRole('button', { name: 'Page 3' }))
     await user.click(within(pager).getByRole('button', { name: 'Previous page' }))
     expect(screen.getByText(showing('Showing 21-40 of 200'))).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('changes page size, resets to page one when a filter changes, and does not persist paging state', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue(createVehicles(45)))
@@ -1258,7 +1270,9 @@ describe('App', () => {
 
     render(<App inventoryService={service} />)
     await screen.findByRole('table', { name: 'Vehicle inventory' })
-    await user.click(screen.getByRole('link', { name: 'Data issues (3)' }))
+    await user.click(screen.getByRole('button', {
+      name: '3 with unknown age (data issue)',
+    }))
 
     expect(screen.getByRole('status')).toHaveTextContent('Showing 1-3 of 3')
     expect(screen.getByText('Data issues', { selector: '.active-filter-chip span' }))

@@ -12,78 +12,159 @@ type InventorySummaryProps = {
   ageBandProfile: AgeBandProfile
   selectedAgeBand: AgeBand | ''
   isTurningAgingSoonOnly: boolean
+  isDataIssuesOnly: boolean
   onSelectAgeBand: (ageBand: AgeBand) => void
-  onShowDataIssues: () => void
+  onToggleDataIssues: () => void
   onToggleTurningAgingSoon: () => void
 }
 
-const summaryItems: Array<{
-  label: string
-  key: keyof InventorySummaryCounts
-}> = [
-  { label: 'Total vehicles', key: 'totalVehicles' },
-  { label: 'Aging vehicles', key: 'agingVehicles' },
-  { label: 'Aging with an action', key: 'agingVehiclesWithAction' },
-]
+function SummaryIcon({ kind }: { kind: 'inventory' | 'aging' | 'turning' | 'action' }) {
+  if (kind === 'inventory') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="5" width="16" height="14" rx="2" />
+        <path d="M8 5v14M4 10h16" />
+      </svg>
+    )
+  }
+
+  if (kind === 'aging') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="13" r="8" />
+        <path d="M12 9v4l3 2M9 2h6" />
+      </svg>
+    )
+  }
+
+  if (kind === 'turning') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 12h15M13 6l6 6-6 6" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  )
+}
 
 export function InventorySummary({
   counts,
   ageBandProfile,
   selectedAgeBand,
   isTurningAgingSoonOnly,
+  isDataIssuesOnly,
   onSelectAgeBand,
-  onShowDataIssues,
+  onToggleDataIssues,
   onToggleTurningAgingSoon,
 }: InventorySummaryProps) {
-  const agingShare =
-    counts.totalVehicles === 0 ? 0 : counts.agingVehicles / counts.totalVehicles
   const actionedShare =
     counts.agingVehicles === 0
       ? 0
       : counts.agingVehiclesWithAction / counts.agingVehicles
+  const agingShare =
+    counts.totalVehicles === 0 ? 0 : counts.agingVehicles / counts.totalVehicles
   const thresholdShare = ageBandProfile.bands
     .slice(0, AGE_BANDS.length - 1)
     .reduce((total, band) => total + band.share, 0)
-  const formatPercentage = (share: number) => `${(share * 100).toFixed(1)}%`
+  const missingActions = counts.agingVehicles - counts.agingVehiclesWithAction
+  const formatPercentage = (share: number) => `${(share * 100).toFixed(0)}%`
 
   return (
     <section className="inventory-summary" aria-labelledby="inventory-summary-title">
-      <h2 id="inventory-summary-title">Inventory summary</h2>
+      <h2 id="inventory-summary-title" className="inventory-summary__sr-only">
+        Inventory summary
+      </h2>
       <dl className="inventory-summary__cards">
-        {summaryItems.map(({ label, key }) => (
-          <div className="inventory-summary__card" key={key}>
-            <dt>{label}</dt>
-            <dd>{counts[key]}</dd>
-          </div>
-        ))}
         <div className="inventory-summary__card">
-          <dt>Aging share</dt>
-          <dd>{formatPercentage(agingShare)}</dd>
-        </div>
-        <div className="inventory-summary__card inventory-summary__card--meter">
-          <dt>Actioned aging vehicles</dt>
+          <dt>
+            <SummaryIcon kind="inventory" />
+            Total vehicles
+          </dt>
           <dd>
-            <span>
-              {counts.agingVehiclesWithAction} of {counts.agingVehicles}
+            <strong>{counts.totalVehicles}</strong>
+            <span className="inventory-summary__support">
+              In stock at this dealership
+            </span>
+          </dd>
+        </div>
+
+        <div className="inventory-summary__card inventory-summary__card--aging">
+          <dt>
+            <SummaryIcon kind="aging" />
+            Aging stock · more than 90 days
+          </dt>
+          <dd>
+            <strong>{counts.agingVehicles}</strong>
+            <span className="inventory-summary__share">
+              {formatPercentage(agingShare)} of stock
+            </span>
+            <span className="inventory-summary__support">
+              {missingActions}{' '}
+              {missingActions === 1 ? 'still needs' : 'still need'} an action
+            </span>
+          </dd>
+        </div>
+
+        <div className="inventory-summary__card inventory-summary__card--turning">
+          <dt>
+            <SummaryIcon kind="turning" />
+            Turning aging in {EARLY_WARNING_DAYS} days
+          </dt>
+          <dd>
+            <strong>{counts.turningAgingSoonVehicles}</strong>
+            <span className="inventory-summary__support">
+              Vehicles entering the aging window
+            </span>
+            <button
+              className="inventory-summary__link"
+              type="button"
+              aria-pressed={isTurningAgingSoonOnly}
+              onClick={onToggleTurningAgingSoon}
+            >
+              Show these vehicles <span aria-hidden="true">→</span>
+            </button>
+          </dd>
+        </div>
+
+        <div className="inventory-summary__card inventory-summary__card--actioned">
+          <dt>
+            <SummaryIcon kind="action" />
+            Aging vehicles with an action
+          </dt>
+          <dd>
+            <strong>{counts.agingVehiclesWithAction}</strong>
+            <span className="inventory-summary__denominator">
+              / {counts.agingVehicles}
             </span>
             <progress
-              aria-label="Actioned aging vehicles"
+              aria-label="Aging vehicles with an action"
               max={Math.max(1, counts.agingVehicles)}
               value={counts.agingVehiclesWithAction}
             />
-            <span className="inventory-summary__meter-share">
-              {formatPercentage(actionedShare)}
+            <span className="inventory-summary__support">
+              {formatPercentage(actionedShare)} of aging stock has a plan
             </span>
           </dd>
         </div>
       </dl>
+
       <section className="age-profile" aria-labelledby="age-profile-title">
         <div className="age-profile__header">
           <h3 id="age-profile-title">Age profile</h3>
           <p>Select a band to filter the list. Exactly 90 days is not aging.</p>
-          <span className="age-profile__unknown">
+          <button
+            className="age-profile__unknown"
+            type="button"
+            aria-pressed={isDataIssuesOnly}
+            onClick={onToggleDataIssues}
+          >
             {counts.dataIssueVehicles} with unknown age (data issue)
-          </span>
+          </button>
         </div>
         <div
           className="age-profile__chart"
@@ -104,9 +185,7 @@ export function InventorySummary({
                 onClick={() => onSelectAgeBand(ageBand)}
               >
                 <span className="age-profile__range">
-                  <span className="age-profile__range-full">
-                    {ageBand} DAYS
-                  </span>
+                  <span className="age-profile__range-full">{ageBand} DAYS</span>
                   <span className="age-profile__range-compact">{ageBand}</span>
                 </span>
                 <span className="age-profile__values">
@@ -129,23 +208,6 @@ export function InventorySummary({
           </span>
         </div>
       </section>
-      <button
-        className="inventory-summary__attention-card"
-        type="button"
-        aria-label={`Turning aging in ${EARLY_WARNING_DAYS} days (${counts.turningAgingSoonVehicles})`}
-        aria-pressed={isTurningAgingSoonOnly}
-        onClick={onToggleTurningAgingSoon}
-      >
-        <span>Turning aging in {EARLY_WARNING_DAYS} days</span>
-        <strong>{counts.turningAgingSoonVehicles}</strong>
-      </button>
-      <a
-        className="inventory-summary__data-issues"
-        href="#inventory-section"
-        onClick={onShowDataIssues}
-      >
-        Data issues ({counts.dataIssueVehicles})
-      </a>
     </section>
   )
 }

@@ -10,21 +10,21 @@
   --font-sans: Manrope, Inter, Arial, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 
-  --color-page: #f3f6f8;
-  --color-text: #172b3a;
-  --color-text-muted: #536878;
+  --color-page: #f4f6f8;
+  --color-text: #1a2230;
+  --color-text-muted: #5f6b7a;
   --color-surface: #fff;
-  --color-border: #d8e1e8;
-  --color-border-strong: #8797a5;
-  --color-primary: #174b6c;
-  --color-primary-hover: #123d59;
+  --color-border: #e3e6eb;
+  --color-border-strong: #cbd5df;
+  --color-primary: #2f5bd3;
+  --color-primary-hover: #2449b3;
   --color-accent-soft: #fff6e5;
   --color-accent-border: #e4bd65;
   --color-surface-muted: #f5f8fa;
   --color-error-text: #7f1d1d;
   --color-error-surface: #fef2f2;
   --color-error-border: #fca5a5;
-  --color-focus: #1d4ed8;
+  --color-focus: #2f5bd3;
 
   --space-1: 4px;
   --space-2: 8px;
