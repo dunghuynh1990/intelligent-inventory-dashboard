@@ -205,6 +205,174 @@ describe('App', () => {
     expect(service.updateVehicleAction).not.toHaveBeenCalled()
   })
 
+  it('toggles the early-warning summary card to filter matching ages and due tags', async () => {
+    const earlyWarningVehicles: Vehicle[] = [
+      {
+        ...sampleVehicles[0],
+        vehicleId: 'vehicle-084',
+        stockNumber: 'STK-84',
+        daysInStock: 84,
+        isAging: false,
+        ageBand: '61-90',
+        currentAction: null,
+      },
+      {
+        ...sampleVehicles[1],
+        vehicleId: 'vehicle-090',
+        stockNumber: 'STK-90',
+        daysInStock: 90,
+        isAging: false,
+        ageBand: '61-90',
+      },
+      {
+        ...sampleVehicles[4],
+        vehicleId: 'vehicle-083',
+        stockNumber: 'STK-83',
+        daysInStock: 83,
+        ageBand: '61-90',
+      },
+      {
+        ...sampleVehicles[3],
+        vehicleId: 'vehicle-091',
+        stockNumber: 'STK-91',
+      },
+    ]
+    const service = createInventoryService(
+      vi.fn().mockResolvedValue(earlyWarningVehicles),
+    )
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const earlyWarningCard = screen.getByRole('button', {
+      name: 'Turning aging in 7 days (2)',
+    })
+    expect(earlyWarningCard).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(earlyWarningCard)
+
+    expect(earlyWarningCard).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-2 of 2')
+    expect(within(table).getByRole('row', { name: /STK-84/ }))
+      .toHaveTextContent('Due in 7 days')
+    expect(within(table).getByRole('row', { name: /STK-90/ }))
+      .toHaveTextContent('Due in 1 day')
+    expect(within(table).queryByRole('row', { name: /STK-83/ }))
+      .not.toBeInTheDocument()
+    expect(within(table).queryByRole('row', { name: /STK-91/ }))
+      .not.toBeInTheDocument()
+    expect(screen.getByRole('button', {
+      name: 'Remove Turning aging in 7 days filter',
+    })).toBeInTheDocument()
+
+    await user.click(earlyWarningCard)
+
+    expect(earlyWarningCard).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('status')).toHaveTextContent('Showing 1-4 of 4')
+  })
+
+  it('shows age profile counts and shares and replaces filters when a band is selected', async () => {
+    const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
+    const user = userEvent.setup()
+
+    render(<App inventoryService={service} />)
+
+    const summary = await screen.findByRole('region', { name: 'Inventory summary' })
+    const profile = within(summary).getByRole('region', { name: 'Age profile' })
+    expect(within(profile).getAllByRole('button')).toHaveLength(4)
+    expect(summary.querySelector('.age-profile__threshold'))
+      .toHaveStyle({ left: '50%' })
+    expect(within(summary).getByText('Select a band to filter the list. Exactly 90 days is not aging.'))
+      .toBeInTheDocument()
+    expect(within(summary).getByText('3 with unknown age (data issue)'))
+      .toBeInTheDocument()
+    expect(within(summary).getByText('Aging share').parentElement)
+      .toHaveTextContent('28.6%')
+    expect(within(summary).getByRole('progressbar', {
+      name: 'Actioned aging vehicles',
+    })).toHaveAttribute('max', '2')
+    expect(within(summary).getByText('1 of 2')).toBeInTheDocument()
+
+    const bandButton = within(summary).getByRole('button', {
+      name: '0-30 days, 1 vehicle, 25.0%',
+    })
+    expect(bandButton).toHaveAttribute('aria-pressed', 'false')
+    await user.type(screen.getByRole('searchbox', { name: 'Search' }), 'Civic')
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+
+    await user.click(bandButton)
+
+    expect(bandButton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Showing 1-1 of 1')).toBeInTheDocument()
+    const table = screen.getByRole('table', { name: 'Vehicle inventory' })
+    expect(within(table).getByRole('row', { name: /STK-0005/ }))
+      .toBeInTheDocument()
+    expect(within(table).queryByRole('row', { name: /STK-0002/ }))
+      .not.toBeInTheDocument()
+
+    await user.click(bandButton)
+
+    expect(bandButton).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('Showing 1-7 of 7')).toBeInTheDocument()
+  })
+
+  it('flags only aging actions logged more than 14 calendar days ago', async () => {
+    const now = new Date()
+    const loggedDaysAgo = (daysAgo: number) =>
+      new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() - daysAgo,
+        8,
+      ).toISOString()
+    const vehicles = sampleVehicles.map((vehicle) => {
+      if (vehicle.vehicleId === 'vehicle-001') {
+        return {
+          ...vehicle,
+          currentAction: {
+            action: 'Price Reduction Planned',
+            loggedAt: loggedDaysAgo(14),
+          },
+        }
+      }
+      if (vehicle.vehicleId === 'vehicle-002') {
+        return {
+          ...vehicle,
+          currentAction: {
+            action: 'Under Review',
+            loggedAt: loggedDaysAgo(15),
+          },
+        }
+      }
+      if (vehicle.vehicleId === 'vehicle-004') {
+        return {
+          ...vehicle,
+          currentAction: {
+            action: 'Send to Auction',
+            loggedAt: loggedDaysAgo(15),
+          },
+        }
+      }
+      return vehicle
+    })
+    const service = createInventoryService(vi.fn().mockResolvedValue(vehicles))
+
+    render(<App inventoryService={service} />)
+
+    const table = await screen.findByRole('table', { name: 'Vehicle inventory' })
+    const actionAt14Days = within(table).getByRole('row', { name: /STK-0001/ })
+    const nonAgingActionAt15Days = within(table).getByRole('row', { name: /STK-0002/ })
+    const agingActionAt15Days = within(table).getByRole('row', { name: /STK-0004/ })
+
+    expect(within(actionAt14Days).queryByText('check progress'))
+      .not.toBeInTheDocument()
+    expect(within(nonAgingActionAt15Days).queryByText('check progress'))
+      .not.toBeInTheDocument()
+    expect(within(agingActionAt15Days).getByText('check progress'))
+      .toBeInTheDocument()
+  })
+
   it('formats missing and future dates and shows their textual issue states', async () => {
     const service = createInventoryService(vi.fn().mockResolvedValue(sampleVehicles))
 
@@ -475,6 +643,12 @@ describe('App', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     const summary = screen.getByRole('region', { name: 'Inventory summary' })
     expect(within(summary).getAllByText('0', { selector: 'dd' })).toHaveLength(3)
+    expect(within(summary).getByText('Aging share').parentElement)
+      .toHaveTextContent('0.0%')
+    expect(within(summary).getByRole('progressbar', {
+      name: 'Actioned aging vehicles',
+    })).toHaveAttribute('max', '1')
+    expect(within(summary).getByText('0 of 0')).toBeInTheDocument()
   })
 
   it('shows inventory-wide summary counts unaffected by filters and updates after saving an action', async () => {

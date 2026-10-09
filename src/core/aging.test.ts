@@ -6,11 +6,14 @@ import {
   formatElapsedRefreshTime,
   formatActionLoggedAge,
   filterVehicles,
+  getDaysUntilAging,
   getAgeBand,
+  getAgeBandProfile,
   getAvailableMakes,
   getAvailableModels,
   getFreshnessLevel,
   getInventorySummary,
+  isActionStale,
   isAging,
   paginateItems,
   type PageSize,
@@ -217,6 +220,7 @@ describe('inventory filtering', () => {
     ageBand: '',
     agingOnly: false,
     dataIssuesOnly: false,
+    turningAgingSoonOnly: false,
   } as const
 
   it('returns every vehicle in ascending ID order when no filters are active', () => {
@@ -292,6 +296,21 @@ describe('inventory filtering', () => {
     ).toEqual(['vehicle-004'])
   })
 
+  it('filters to vehicles in the early-warning window', () => {
+    const vehicles = [83, 84, 90, 91].map((daysInStock) => ({
+      ...filterTestVehicles[0],
+      vehicleId: `vehicle-${daysInStock}`,
+      daysInStock,
+    }))
+
+    expect(
+      filterVehicles(vehicles, {
+        ...noFilters,
+        turningAgingSoonOnly: true,
+      }).map(({ daysInStock }) => daysInStock),
+    ).toEqual([84, 90])
+  })
+
   it('filters no-action results to aging vehicles without a current action', () => {
     const vehicles = [
       ...filterTestVehicles,
@@ -333,8 +352,24 @@ describe('inventory filtering', () => {
         ageBand: '>90',
         agingOnly: true,
         dataIssuesOnly: false,
+        turningAgingSoonOnly: false,
       }).map(({ vehicleId }) => vehicleId),
     ).toEqual(['vehicle-001'])
+  })
+
+  describe('early-warning window', () => {
+    it.each([
+      { daysInStock: 83, daysUntilAging: null },
+      { daysInStock: 84, daysUntilAging: 7 },
+      { daysInStock: 90, daysUntilAging: 1 },
+      { daysInStock: 91, daysUntilAging: null },
+      { daysInStock: null, daysUntilAging: null },
+    ])(
+      'returns $daysUntilAging days until aging for age $daysInStock',
+      ({ daysInStock, daysUntilAging }) => {
+        expect(getDaysUntilAging(daysInStock)).toBe(daysUntilAging)
+      },
+    )
   })
 
   it('provides unique sorted makes and make-dependent model options', () => {
@@ -477,6 +512,35 @@ describe('action logged age', () => {
   })
 })
 
+describe('stale action classification', () => {
+  const now = new Date(2024, 5, 20, 12)
+
+  it.each([
+    { daysAgo: 14, stale: false },
+    { daysAgo: 15, stale: true },
+  ])('classifies an action logged $daysAgo days ago as stale: $stale', ({
+    daysAgo,
+    stale,
+  }) => {
+    const loggedAt = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - daysAgo,
+      8,
+    ).toISOString()
+
+    expect(isActionStale(loggedAt, now)).toBe(stale)
+  })
+
+  it('does not classify missing, invalid, or future timestamps as stale', () => {
+    expect(isActionStale(undefined, now)).toBe(false)
+    expect(isActionStale('not-a-date', now)).toBe(false)
+    expect(
+      isActionStale(new Date(2024, 5, 21, 8).toISOString(), now),
+    ).toBe(false)
+  })
+})
+
 describe('inventory summary counts', () => {
   it('counts total, aging, and aging-with-action vehicles independently', () => {
     const vehicles = filterTestVehicles.map((vehicle) => {
@@ -494,6 +558,42 @@ describe('inventory summary counts', () => {
       agingVehicles: 1,
       agingVehiclesWithAction: 1,
       dataIssueVehicles: 1,
+      turningAgingSoonVehicles: 0,
+    })
+  })
+
+  describe('age band profile', () => {
+    it('counts each band and calculates shares from vehicles with a known age', () => {
+      const profile = getAgeBandProfile([
+        ...filterTestVehicles,
+        { ...filterTestVehicles[0], vehicleId: 'vehicle-005' },
+      ])
+
+      expect(profile).toEqual({
+        bands: [
+          { ageBand: '0-30', count: 2, share: 0.5 },
+          { ageBand: '31-60', count: 1, share: 0.25 },
+          { ageBand: '61-90', count: 0, share: 0 },
+          { ageBand: '>90', count: 1, share: 0.25 },
+        ],
+        knownAgeVehicles: 4,
+      })
+    })
+
+    it('returns zero shares for an inventory without known ages', () => {
+      const unknownAgeVehicles = filterTestVehicles.filter(
+        (vehicle) => vehicle.ageBand === null,
+      )
+
+      expect(getAgeBandProfile(unknownAgeVehicles)).toEqual({
+        bands: [
+          { ageBand: '0-30', count: 0, share: 0 },
+          { ageBand: '31-60', count: 0, share: 0 },
+          { ageBand: '61-90', count: 0, share: 0 },
+          { ageBand: '>90', count: 0, share: 0 },
+        ],
+        knownAgeVehicles: 0,
+      })
     })
   })
 
@@ -503,6 +603,7 @@ describe('inventory summary counts', () => {
       agingVehicles: 0,
       agingVehiclesWithAction: 0,
       dataIssueVehicles: 0,
+      turningAgingSoonVehicles: 0,
     })
   })
 })

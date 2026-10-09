@@ -1,81 +1,82 @@
 # Active WBS Task
 
-> Execution snapshot for WBS 4.20. The repository owner invoked this task, authorizing its CR-17 freshness behavior for this task only. The 15/60-minute thresholds remain named assessment placeholders, not production freshness targets; A-18/OQ-11 and D37 remain proposed outside this scope.
+> Execution snapshot for WBS 4.22. The repository owner invoked this gated Nice task after the Core UX gate was verified for WBS 4.21. A-04 and the linked baseline design choices remain unchanged; this task does not change the status of proposed CRs or decisions.
 
 ## Task
 
-- WBS ID: 4.20
-- Name: Build Freshness Indicators
+- WBS ID: 4.22
+- Name: Build Age Profile and Summary Upgrade
 - Workstream: UI Implementation
-- Priority: Should
+- Priority: Nice
 - Status: Complete
 - Planned effort: 1.00 hour
-- CR Ref: CR-17
+- CR Ref: CR-10, CR-11
 
 ## Objective
 
-Make inventory freshness, the reference date, and refresh outcomes visible in the dashboard header and inventory section.
+Show the inventory distribution across age bands with counts, shares and a 90-day threshold marker; let managers quick-filter by band; and add aging-share and actioned-vehicle summary indicators.
 
 ## Linked acceptance criteria
 
-- AC-R4-06: A failed manual refresh preserves loaded rows and the last successful refresh time, while showing an error and Retry.
-- AC-R5-03: Classify 14, 15, 59 and 60 minutes as normal, amber, amber and warning.
-- AC-R5-04: Show the last-refreshed time and elapsed time, with amber styling at 25 minutes.
-- AC-R5-05: At 60 minutes, show a stale-data warning and Refresh now above the summary.
-- AC-R5-06: Show the reference date as DD-MMM-YYYY.
+- AC-R2-13: The inventory summary shows the aging count.
+- AC-R2-19: Each age-band segment shows its count and share; selecting a band applies that age-band filter, and selecting it again clears it.
 
-## Approved assumptions and decisions used
+## Approved assumptions and task-scoped interpretations
 
-- A-08: Real-time is represented by last-refreshed time plus manual refresh.
-- The WBS 4.20 invocation authorizes implementing the task-specified CR-17 behavior for this assessment task.
-- Use the named 15- and 60-minute placeholders as specified by AC-R5-03 and WBS 4.20; no production service-level target or push/polling mechanism is implied.
-- Preserve the existing separation between first-load failure (no inventory rows) and refresh failure (previous rows remain visible).
-- Keep inventory access behind the existing `InventoryService` and use the injected clock for deterministic timestamps and tests.
+- The WBS 4.22 invocation authorizes only this task's gated Nice behavior; it does not change the approved requirements baseline or proposed CR/decision statuses.
+- Age bands use the existing boundary rules: 0-30, 31-60, 61-90 and over 90 days; exactly 90 days is not aging.
+- Band shares use vehicles with a valid derived age as the denominator. Missing, invalid and future entry-date records are excluded because they do not belong to an age band.
+- The visible profile ranges are themselves keyboard-accessible filter buttons, sized to their shares and labeled with range, count and share. The profile header shows the unknown-age data-issue count and clarifies that exactly 90 days is not aging.
+- Aging share is aging vehicles divided by all inventory vehicles. The actioned meter is aging vehicles with an action divided by all aging vehicles; a zero denominator displays 0%.
+- Age-band quick views replace the complete active filter set, as specified by C-29; selecting the currently selected band clears the filter set.
+- Counts and shares are inventory-wide and remain independent of the active list filters.
+- The 90-day threshold marker sits at the boundary between the 61-90 and over-90 bands.
 
 ## Relevant design components
 
-- `src/core/aging.ts`: pure freshness thresholds and elapsed-time display formatting.
-- `src/App.tsx`: current time, successful refresh state, header and stale-warning orchestration.
-- `src/App.css`: freshness-level, error and warning presentation.
-- `src/App.test.tsx`: fixed-clock refresh, stale-threshold, retry and reference-date behavior.
+- `src/core/aging.ts`: Pure age-band counts and valid-age share calculation.
+- `src/App.tsx`: Inventory-wide summary data and complete-filter-set band selection.
+- `src/components/InventorySummary.tsx` and `.css`: Age-profile bar/controls, threshold marker, aging-share card and actioned meter.
+- `src/core/aging.test.ts` and `src/App.test.tsx`: Pure profile and dashboard interaction coverage.
 
 ## In scope
 
-- Show the current reference date as DD-MMM-YYYY in the header.
-- Show last-refreshed time and elapsed minutes; update the displayed elapsed time while the page remains open.
-- Apply normal, amber and warning states at the existing 15/60-minute placeholder thresholds.
-- At 60 minutes, show a stale-data banner above the summary with a Refresh now action.
-- On refresh failure, keep the prior inventory and timestamp and expose Retry; preserve the distinct first-load failure behavior.
-- Add focused pure and component tests, and update the execution snapshot, traceability and factual collaboration log.
+- Show counts and valid-age shares for all four age bands.
+- Show and label the threshold between the 61-90 and over-90-day bands.
+- Toggle a selected age-band filter; replace other filters on selection and clear all filters on repeated selection.
+- Show aging share and an actioned meter in the inventory summary.
+- Add boundary/empty/invalid-age coverage and component interaction checks; update this snapshot, traceability and factual collaboration evidence.
 
 ## Explicitly out of scope
 
-- Changing the requirements baseline, `docs/wbs.md`, system design or proposal status for A-18/D37.
-- Production freshness targets, automatic data refresh, server push/polling, authentication, backend work or new dependencies.
-- Features assigned to later WBS tasks, unrelated existing changes, staging, committing or pushing.
+- Changing `docs/requirements-baseline.md`, `docs/wbs.md`, system design or the proposal status of linked CRs/decisions.
+- Preset views assigned to WBS 4.23, sorting assigned to WBS 4.24, CSV export, production targets or backend work.
+- Changing age-band/aging rules, adding action history or dependencies, or changing the service contract.
+- Unrelated worktree changes, staging, committing or pushing.
 
 ## Files changed
 
 - `docs/active-task.md`
 - `docs/traceability.md`
 - `docs/ai/collaboration-log.md`
-- `src/App.tsx`, `src/App.css`, `src/App.test.tsx`
+- `src/App.tsx`, `src/App.test.tsx`
 - `src/core/aging.ts`, `src/core/aging.test.ts`
+- `src/components/InventorySummary.tsx`, `src/components/InventorySummary.css`
 
 ## Verification
 
-- Focused: `npm test -- --pool=threads --maxWorkers=1 --isolate=false src/core/aging.test.ts src/App.test.tsx` (2 files, 92 tests passed).
-- Full suite: `npm test -- --pool=threads --maxWorkers=1 --isolate=false` (5 files, 112 tests passed).
-- `npm run lint` passed.
-- `npm run build` passed.
-- Browser review with `?dataAgeMinutes=25` showed the amber `25 min ago` state; `?dataAgeMinutes=60` showed the warning, `60 min ago`, and both Refresh now controls.
-- `git diff --check` passed; final diff reviewed.
-- An initial focused run timed out during Vitest worker startup; isolated one-worker reruns passed. An early stale-warning query had an incorrect accessible-name matcher; it was corrected before the passing run.
+- The Core UX gate was reported as checked and passed before WBS 4.21 implementation.
+- Focused: `npm test -- --run --pool=threads --maxWorkers=1 src/core/aging.test.ts src/App.test.tsx` (2 files, 107 tests passed).
+- Full suite: `npm test -- --run --pool=threads --maxWorkers=1` (5 files, 127 tests passed).
+- `npm run lint`, `npm run build` and `git diff --check` passed.
+- Browser review showed the default 200-vehicle inventory and age profile; selecting 0-30 days showed 27 vehicles and selecting it again restored all 200. At a 375px viewport the age-profile section had no horizontal overflow.
+- Final diff reviewed. No files are staged, committed or pushed.
 
 ## Exit criteria
 
-- Header date, elapsed refresh age, freshness colors and stale warning match the task-defined placeholders.
-- Refresh errors preserve last successful inventory and timestamp, provide Retry, and do not change first-load behavior.
-- Focused/full tests, lint, build, browser freshness review and final diff checks pass.
+- Each age band shows its count and share of vehicles with a valid age, with a labeled 90-day threshold.
+- Selecting an age band replaces the full filter set; selecting it again clears the set.
+- Summary shows aging share and an actioned meter, including empty/zero-denominator handling.
+- Focused/full tests, lint, build, browser review and final diff checks pass.
 
-Do not stage, commit, or push.
+Do not stage, commit or push.

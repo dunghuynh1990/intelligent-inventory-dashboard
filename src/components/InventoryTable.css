@@ -102,6 +102,19 @@
   font-weight: 600;
 }
 
+.early-warning-badge {
+  display: inline-flex;
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-accent-border);
+  border-radius: 999px;
+  color: #805000;
+  background: var(--color-accent-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .inventory-table__match {
   border-radius: 2px;
   color: inherit;
@@ -117,6 +130,11 @@
 .inventory-action small {
   color: var(--color-text-muted);
   white-space: normal;
+}
+
+.inventory-action .inventory-action__stale-flag {
+  color: #805000;
+  font-weight: 700;
 }
 
 .proposed-action-dialog {

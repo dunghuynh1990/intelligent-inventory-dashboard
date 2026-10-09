@@ -1,5 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react'
-import { formatActionLoggedAge } from '../core/aging'
+import {
+  formatActionLoggedAge,
+  getDaysUntilAging,
+  isActionStale,
+} from '../core/aging'
 import type { Vehicle, VehicleAction } from '../types/vehicle'
 import { ProposedActionForm } from './ProposedActionForm'
 import './InventoryTable.css'
@@ -60,12 +64,17 @@ export function InventoryTable({
           </thead>
           <tbody>
             {vehicles.map((vehicle) => {
+              const daysUntilAging = getDaysUntilAging(vehicle.daysInStock)
               const actionLoggedAge = vehicle.currentAction
                 ? formatActionLoggedAge(
                     vehicle.currentAction.loggedAt,
                     actionAgeReferenceTime,
                   )
                 : null
+              const actionIsStale =
+                vehicle.isAging &&
+                vehicle.currentAction !== null &&
+                isActionStale(vehicle.currentAction.loggedAt, actionAgeReferenceTime)
 
               return (
                 <tr key={vehicle.vehicleId}>
@@ -83,6 +92,12 @@ export function InventoryTable({
                     ) : (
                       <span aria-label="Not aging">—</span>
                     )}
+                    {daysUntilAging !== null && (
+                      <span className="early-warning-badge">
+                        Due in {daysUntilAging}{' '}
+                        {daysUntilAging === 1 ? 'day' : 'days'}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {vehicle.currentAction ? (
@@ -92,6 +107,11 @@ export function InventoryTable({
                           <small>{vehicle.currentAction.note}</small>
                         )}
                         {actionLoggedAge && <small>{actionLoggedAge}</small>}
+                        {actionIsStale && (
+                          <small className="inventory-action__stale-flag">
+                            check progress
+                          </small>
+                        )}
                       </span>
                     ) : vehicle.isAging ? (
                       'No action yet'

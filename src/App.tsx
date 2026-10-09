@@ -4,6 +4,7 @@ import {
   formatElapsedRefreshTime,
   getAvailableMakes,
   getAvailableModels,
+  getAgeBandProfile,
   getFreshnessLevel,
   getInventorySummary,
   paginateItems,
@@ -11,7 +12,7 @@ import {
   type PageSize,
 } from './core/aging'
 import type { InventoryService } from './services/inventory-service'
-import type { Vehicle, VehicleAction } from './types/vehicle'
+import type { AgeBand, Vehicle, VehicleAction } from './types/vehicle'
 import { InventoryTable } from './components/InventoryTable'
 import { InventoryFilters } from './components/InventoryFilters'
 import { InventoryPager } from './components/InventoryPager'
@@ -32,6 +33,7 @@ const emptyFilters: InventoryFilterCriteria = {
   ageBand: '',
   agingOnly: false,
   dataIssuesOnly: false,
+  turningAgingSoonOnly: false,
   actionFilter: 'any',
 }
 const noVehicles: Vehicle[] = []
@@ -132,6 +134,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
     () => getInventorySummary(allVehicles),
     [allVehicles],
   )
+  const ageBandProfile = useMemo(() => getAgeBandProfile(allVehicles), [allVehicles])
   const freshnessLevel = lastRefreshed
     ? getFreshnessLevel(lastRefreshed, currentTime)
     : 'normal'
@@ -344,8 +347,24 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
           {vehicles !== null && (
             <InventorySummary
               counts={summaryCounts}
+              ageBandProfile={ageBandProfile}
+              selectedAgeBand={filters.ageBand}
+              isTurningAgingSoonOnly={filters.turningAgingSoonOnly}
+              onSelectAgeBand={(ageBand: AgeBand) =>
+                handleFiltersChange(
+                  filters.ageBand === ageBand
+                    ? emptyFilters
+                    : { ...emptyFilters, ageBand },
+                )
+              }
               onShowDataIssues={() =>
                 handleFiltersChange({ ...emptyFilters, dataIssuesOnly: true })
+              }
+              onToggleTurningAgingSoon={() =>
+                handleFiltersChange({
+                  ...filters,
+                  turningAgingSoonOnly: !filters.turningAgingSoonOnly,
+                })
               }
             />
           )}

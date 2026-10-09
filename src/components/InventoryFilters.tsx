@@ -1,5 +1,6 @@
 import {
   AGE_BANDS,
+  EARLY_WARNING_DAYS,
   type ActionFilter,
   type InventoryFilterCriteria,
 } from '../core/aging'
@@ -12,6 +13,7 @@ type RemovableFilter =
   | 'ageBand'
   | 'agingOnly'
   | 'dataIssuesOnly'
+  | 'turningAgingSoonOnly'
   | 'actionFilter'
 
 type InventoryFiltersProps = {
@@ -204,6 +206,12 @@ function getActiveFilters(
   if (filters.dataIssuesOnly) {
     activeFilters.push({ key: 'dataIssuesOnly', label: 'Data issues' })
   }
+  if (filters.turningAgingSoonOnly) {
+    activeFilters.push({
+      key: 'turningAgingSoonOnly',
+      label: `Turning aging in ${EARLY_WARNING_DAYS} days`,
+    })
+  }
   const actionFilter = filters.actionFilter ?? 'any'
   if (actionFilter !== 'any') {
     const label = actionFilter === 'no-action' ? 'No action yet' : 'Has an action'
@@ -229,6 +237,8 @@ function removeFilter(
       return { ...filters, agingOnly: false }
     case 'dataIssuesOnly':
       return { ...filters, dataIssuesOnly: false }
+    case 'turningAgingSoonOnly':
+      return { ...filters, turningAgingSoonOnly: false }
     case 'actionFilter':
       return { ...filters, actionFilter: 'any' satisfies ActionFilter }
   }

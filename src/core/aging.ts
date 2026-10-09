@@ -12,6 +12,8 @@ export const AGE_BANDS: readonly AgeBand[] = ['0-30', '31-60', '61-90', '>90']
 export const PAGE_SIZES = [10, 20, 50, 100] as const
 export const FRESHNESS_AMBER_AFTER_MINUTES = 15
 export const FRESHNESS_WARNING_AFTER_MINUTES = 60
+export const EARLY_WARNING_DAYS = 7
+export const ACTION_STALE_AFTER_DAYS = 14
 
 export type ActionFilter = 'any' | 'no-action' | 'has-action'
 export type FreshnessLevel = 'normal' | 'amber' | 'warning'
@@ -24,6 +26,7 @@ export interface InventoryFilterCriteria {
   ageBand: AgeBand | ''
   agingOnly: boolean
   dataIssuesOnly: boolean
+  turningAgingSoonOnly: boolean
   actionFilter?: ActionFilter
 }
 
@@ -32,6 +35,18 @@ export interface InventorySummaryCounts {
   agingVehicles: number
   agingVehiclesWithAction: number
   dataIssueVehicles: number
+  turningAgingSoonVehicles: number
+}
+
+export interface AgeBandProfileEntry {
+  ageBand: AgeBand
+  count: number
+  share: number
+}
+
+export interface AgeBandProfile {
+  bands: AgeBandProfileEntry[]
+  knownAgeVehicles: number
 }
 
 export interface PaginatedItems<T> {
@@ -134,11 +149,14 @@ export function filterVehicles(
         actionFilter === 'any' ||
         (actionFilter === 'no-action' && vehicle.isAging && vehicle.currentAction === null) ||
         (actionFilter === 'has-action' && vehicle.currentAction !== null)
+      const matchesEarlyWarning =
+        !filters.turningAgingSoonOnly || getDaysUntilAging(vehicle.daysInStock) !== null
 
       return (
         matchesSearch &&
         matchesAction &&
         (!filters.dataIssuesOnly || vehicle.entryDateIssue !== null) &&
+        matchesEarlyWarning &&
         (!filters.make || vehicle.make === filters.make) &&
         (!filters.model || vehicle.model === filters.model) &&
         (!filters.ageBand || vehicle.ageBand === filters.ageBand) &&
@@ -197,6 +215,17 @@ export function getFreshnessLevel(lastRefreshedAt: Date, now: Date): FreshnessLe
   return 'normal'
 }
 
+export function getDaysUntilAging(daysInStock: number | null): number | null {
+  if (!isValidAge(daysInStock)) {
+    return null
+  }
+
+  const daysUntilAging = AGING_THRESHOLD_DAYS + 1 - daysInStock
+  return daysUntilAging >= 1 && daysUntilAging <= EARLY_WARNING_DAYS
+    ? daysUntilAging
+    : null
+}
+
 export function formatElapsedRefreshTime(
   lastRefreshedAt: Date,
   now: Date,
@@ -224,6 +253,28 @@ export function formatActionLoggedAge(
   loggedAt: string | undefined,
   now: Date,
 ): string | null {
+  const daysAgo = getActionAgeInCalendarDays(loggedAt, now)
+  if (daysAgo === null) {
+    return null
+  }
+  if (daysAgo === 0) {
+    return 'Logged today'
+  }
+  if (daysAgo === 1) {
+    return 'Logged yesterday'
+  }
+  return `Logged ${daysAgo} days ago`
+}
+
+export function isActionStale(loggedAt: string | undefined, now: Date): boolean {
+  const daysAgo = getActionAgeInCalendarDays(loggedAt, now)
+  return daysAgo !== null && daysAgo > ACTION_STALE_AFTER_DAYS
+}
+
+function getActionAgeInCalendarDays(
+  loggedAt: string | undefined,
+  now: Date,
+): number | null {
   if (loggedAt === undefined) {
     return null
   }
@@ -241,16 +292,7 @@ export function formatActionLoggedAge(
   )
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
   const daysAgo = Math.floor((today - loggedDay) / millisecondsPerDay)
-  if (daysAgo < 0) {
-    return null
-  }
-  if (daysAgo === 0) {
-    return 'Logged today'
-  }
-  if (daysAgo === 1) {
-    return 'Logged yesterday'
-  }
-  return `Logged ${daysAgo} days ago`
+  return daysAgo < 0 ? null : daysAgo
 }
 
 export function getAvailableMakes(vehicles: Vehicle[]): string[] {
@@ -276,6 +318,9 @@ export function getInventorySummary(vehicles: Vehicle[]): InventorySummaryCounts
       if (vehicle.daysInStock === null) {
         summary.dataIssueVehicles += 1
       }
+      if (getDaysUntilAging(vehicle.daysInStock) !== null) {
+        summary.turningAgingSoonVehicles += 1
+      }
       if (vehicle.isAging) {
         summary.agingVehicles += 1
         if (vehicle.currentAction) {
@@ -284,8 +329,41 @@ export function getInventorySummary(vehicles: Vehicle[]): InventorySummaryCounts
       }
       return summary
     },
-    { totalVehicles: 0, agingVehicles: 0, agingVehiclesWithAction: 0, dataIssueVehicles: 0 },
+    {
+      totalVehicles: 0,
+      agingVehicles: 0,
+      agingVehiclesWithAction: 0,
+      dataIssueVehicles: 0,
+      turningAgingSoonVehicles: 0,
+    },
   )
+}
+
+export function getAgeBandProfile(vehicles: Vehicle[]): AgeBandProfile {
+  const counts: Record<AgeBand, number> = {
+    '0-30': 0,
+    '31-60': 0,
+    '61-90': 0,
+    '>90': 0,
+  }
+
+  for (const vehicle of vehicles) {
+    if (vehicle.ageBand !== null) {
+      counts[vehicle.ageBand] += 1
+    }
+  }
+
+  const knownAgeVehicles = Object.values(counts).reduce(
+    (total, count) => total + count,
+    0,
+  )
+  const bands = AGE_BANDS.map((ageBand) => ({
+    ageBand,
+    count: counts[ageBand],
+    share: knownAgeVehicles === 0 ? 0 : counts[ageBand] / knownAgeVehicles,
+  }))
+
+  return { bands, knownAgeVehicles }
 }
 
 function getReferenceCalendarDay(referenceDate: Date): number {
