@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InventoryService } from './inventory-service'
 import { getMockDataAgeMinutes, MockInventoryService } from './mock-inventory-service'
 import { generateMockVehicles } from './mock-vehicle-data'
-import { classifyEntryDateIssue } from '../core/aging'
+import { classifyEntryDateIssue, isActionStale } from '../core/aging'
 
 const referenceDate = new Date(2024, 5, 1, 12)
 
@@ -196,16 +196,18 @@ describe('MockInventoryService', () => {
     const vehicles = await service.getVehicles()
     const actionedVehicles = vehicles.filter(({ currentAction }) => currentAction !== null)
 
-    expect(actionedVehicles).toHaveLength(3)
+    expect(actionedVehicles).toHaveLength(22)
     expect(actionedVehicles.every(({ isAging, currentAction }) =>
-      isAging &&
-      currentAction?.action === 'Price Reduction Planned' &&
-      currentAction.note === 'Demo sample action' &&
-      currentAction.loggedAt !== undefined,
+      isAging && currentAction?.loggedAt !== undefined,
+    )).toBe(true)
+    expect(new Set(actionedVehicles.map(({ currentAction }) => currentAction?.action)).size)
+      .toBeGreaterThan(3)
+    expect(actionedVehicles.some(({ currentAction }) =>
+      isActionStale(currentAction?.loggedAt, new Date()),
     )).toBe(true)
   })
 
-  it('does not overwrite existing actions when demo mode is enabled', async () => {
+  it('keeps existing actions and adds samples to other aging vehicles in demo mode', async () => {
     window.history.replaceState({}, '', '/?demo=true')
     const existingAction = {
       action: 'Price Reduction Planned',
@@ -220,7 +222,7 @@ describe('MockInventoryService', () => {
     const vehicles = await service.getVehicles()
 
     expect(vehicles[2].currentAction).toEqual(existingAction)
-    expect(vehicles.filter(({ currentAction }) => currentAction !== null)).toHaveLength(1)
+    expect(vehicles.filter(({ currentAction }) =>     currentAction !== null)).toHaveLength(23)
   })
 
   it('parses the optional mock data-age scenario and rejects invalid ages', () => {

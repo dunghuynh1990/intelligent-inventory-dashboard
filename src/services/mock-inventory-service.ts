@@ -5,6 +5,32 @@ import type { Vehicle, VehicleAction } from '../types/vehicle'
 const actionStorageKey = 'intelligent-inventory-dashboard:vehicle-actions'
 const defaultDelayMs = 250
 const maxDateMilliseconds = 8.64e15
+const millisecondsPerDay = 86_400_000
+
+const demoActions = [
+  { action: 'Price Reduction Planned', note: 'Drop by 5% after weekend review', daysAgo: 2 },
+  { action: 'Send to Auction', note: 'Booked for next Thursday auction', daysAgo: 5 },
+  { action: 'Transfer to Another Site', note: 'Move to the north lot', daysAgo: 9 },
+  { action: 'Promote in Campaign', note: 'Add to the end-of-month promotion', daysAgo: 12 },
+  { action: 'Under Review', note: 'Waiting for the used-car manager', daysAgo: 20 },
+  { action: 'Price Reduction Planned', note: '', daysAgo: 30 },
+  { action: 'Send to Auction', note: 'Wholesale quote requested', daysAgo: 1 },
+  { action: 'Promote in Campaign', note: 'Feature on the website homepage', daysAgo: 3 },
+  { action: 'Under Review', note: 'Check reconditioning cost', daysAgo: 4 },
+  { action: 'Transfer to Another Site', note: 'Better demand at the south showroom', daysAgo: 6 },
+  { action: 'Price Reduction Planned', note: 'Match competitor listing', daysAgo: 7 },
+  { action: 'Send to Auction', note: '', daysAgo: 8 },
+  { action: 'Promote in Campaign', note: 'Include in the weekend sales event', daysAgo: 10 },
+  { action: 'Under Review', note: 'Awaiting appraisal update', daysAgo: 11 },
+  { action: 'Price Reduction Planned', note: 'Drop by 3% next Monday', daysAgo: 14 },
+  { action: 'Transfer to Another Site', note: '', daysAgo: 16 },
+  { action: 'Send to Auction', note: 'Next available lane', daysAgo: 18 },
+  { action: 'Promote in Campaign', note: '', daysAgo: 22 },
+  { action: 'Under Review', note: 'Manager to confirm plan', daysAgo: 25 },
+  { action: 'Price Reduction Planned', note: 'Second reduction after no enquiries', daysAgo: 28 },
+  { action: 'Transfer to Another Site', note: 'Requested by the sister dealership', daysAgo: 35 },
+  { action: 'Under Review', note: 'Plan not revisited yet', daysAgo: 40 },
+]
 
 export interface MockInventoryServiceOptions {
   referenceDate?: Date
@@ -109,19 +135,21 @@ export class MockInventoryService implements InventoryService {
 
   private seedDemoActions(): void {
     const storage = this.storage
-    if (storage.getItem(actionStorageKey) !== null) {
-      return
-    }
-
-    const loggedAt = new Date().toISOString()
-    const actions: Record<string, VehicleAction> = {}
-    for (const vehicle of this.vehicles.filter(({ isAging }) => isAging).slice(0, 3)) {
-      actions[vehicle.vehicleId] = {
-        action: 'Price Reduction Planned',
-        note: 'Demo sample action',
-        loggedAt,
+    const now = Date.now()
+    const actions = this.readStoredActions()
+    const agingVehicles = this.vehicles.filter(
+      ({ isAging, vehicleId }) => isAging && !(vehicleId in actions),
+    )
+    demoActions.forEach((sample, index) => {
+      const vehicle = agingVehicles[index]
+      if (vehicle) {
+        actions[vehicle.vehicleId] = {
+          action: sample.action,
+          note: sample.note,
+          loggedAt: new Date(now - sample.daysAgo * millisecondsPerDay).toISOString(),
+        }
       }
-    }
+    })
     storage.setItem(actionStorageKey, JSON.stringify(actions))
   }
 

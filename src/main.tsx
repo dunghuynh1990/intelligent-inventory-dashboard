@@ -12,7 +12,9 @@ import App from './App.tsx'
 
 const dataAgeMinutes = getMockDataAgeMinutes(window.location.search)
 const clock = () => new Date(Date.now() - dataAgeMinutes * 60 * 1000)
-const inventoryService = withLogging(new MockInventoryService())
+const inventoryService = withLogging(
+  new MockInventoryService({ demoMode: true }),
+)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
