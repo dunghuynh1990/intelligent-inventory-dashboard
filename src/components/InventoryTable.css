@@ -159,13 +159,6 @@
   color: #b4530a;
 }
 
-.inventory-table__unknown {
-  color: #98a2b0;
-  font-size: 13px;
-  font-style: italic;
-  font-weight: 500;
-}
-
 .inventory-table__row--aging td,
 .inventory-table__row--aging tbody th,
 .inventory-table tbody tr.inventory-table__row--aging th {

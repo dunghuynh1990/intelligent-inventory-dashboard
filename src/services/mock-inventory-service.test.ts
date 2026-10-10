@@ -103,7 +103,7 @@ describe('MockInventoryService', () => {
     vi.setSystemTime(saveTime)
     const firstService = new MockInventoryService({ referenceDate, delayMs: 0 })
     const action = { action: 'Price Reduction Planned', note: 'Review this week' }
-    const save = firstService.updateVehicleAction('vehicle-001', action)
+    const save = firstService.updateVehicleAction('vehicle-003', action)
 
     await vi.advanceTimersByTimeAsync(0)
     await save
@@ -114,9 +114,9 @@ describe('MockInventoryService', () => {
     const vehicles = await getVehicles
     const savedAction = { ...action, loggedAt: saveTime.toISOString() }
 
-    expect(vehicles[0].currentAction).toEqual(savedAction)
+    expect(vehicles[2].currentAction).toEqual(savedAction)
     expect(JSON.parse(window.localStorage.getItem('intelligent-inventory-dashboard:vehicle-actions') ?? '{}')).toEqual({
-      'vehicle-001': savedAction,
+      'vehicle-003': savedAction,
     })
   })
 
@@ -132,10 +132,25 @@ describe('MockInventoryService', () => {
     const service = new MockInventoryService({ referenceDate, delayMs: 0 })
 
     await expect(
-      service.updateVehicleAction('vehicle-001', { action: ' ' }),
+      service.updateVehicleAction('vehicle-003', { action: ' ' }),
     ).rejects.toThrow('An action must be selected')
     expect(window.localStorage.length).toBe(0)
   })
+
+  it.each([
+    { vehicleId: 'vehicle-001', daysInStock: 89 },
+    { vehicleId: 'vehicle-002', daysInStock: 90 },
+  ])(
+    'rejects proposed actions for a $daysInStock-day non-aging vehicle',
+    async ({ vehicleId }) => {
+      const service = new MockInventoryService({ referenceDate, delayMs: 0 })
+
+      await expect(
+        service.updateVehicleAction(vehicleId, { action: 'Review' }),
+      ).rejects.toThrow('Proposed actions are available only for aging vehicles')
+      expect(window.localStorage.length).toBe(0)
+    },
+  )
 
   it('does not resolve retrieval before the configured simulated delay elapses', async () => {
     vi.useFakeTimers()

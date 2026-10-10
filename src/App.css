@@ -163,8 +163,7 @@
   clip-path: inset(50%);
 }
 
-.inventory-status,
-.inventory-empty {
+.inventory-status {
   margin: var(--space-2) 0 0;
   color: var(--color-text-muted);
 }
@@ -312,12 +311,6 @@
   border-radius: var(--radius-sm);
   color: var(--color-text);
   background: var(--color-surface-muted);
-}
-
-.inventory-empty {
-  margin: 0;
-  padding: var(--space-6);
-  text-align: center;
 }
 
 .inventory-no-results {

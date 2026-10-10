@@ -88,11 +88,15 @@ export class MockInventoryService implements InventoryService {
     await this.waitForDelay()
     this.throwIfFailureEnabled()
 
-    if (!this.vehicles.some((vehicle) => vehicle.vehicleId === vehicleId)) {
+    const vehicle = this.vehicles.find(({ vehicleId: id }) => id === vehicleId)
+    if (!vehicle) {
       throw new Error(`Unknown vehicle ID: ${vehicleId}`)
     }
     if (!action.action.trim()) {
       throw new Error('An action must be selected')
+    }
+    if (!vehicle.isAging) {
+      throw new Error('Proposed actions are available only for aging vehicles')
     }
 
     const actions = this.readStoredActions()

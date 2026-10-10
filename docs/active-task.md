@@ -4,16 +4,16 @@
 
 ## Task
 
-- WBS ID: 5.3
-- Name: Action Workflow Tests
-- Workstream: Testing
+- WBS ID: 7.2
+- Name: Clean Repository
+- Workstream: README & Repo
 - Priority: Must
 - Status: In Progress
-- Planned effort: 2.25 hours
+- Planned effort: 0.25 hour
 
 ## Objective
 
-Verify the aging-vehicle proposed-action workflow through component and service tests: successful save, required-action validation, persistence after reload, forced failure preserving the previous action, replacement of the current action, and exclusion at exactly 90 days. Review and challenge the existing AI-assisted validation test with a temporary mutation, restore the implementation, and record factual evidence.
+Review repository hygiene and remove only confirmed-unused files, ensuring there is no ad-hoc debug output or committed secret material, generated folders are not tracked, and the repository structure remains intentional.
 
 ## Authoritative input documents
 
@@ -25,80 +25,67 @@ Verify the aging-vehicle proposed-action workflow through component and service 
 - `docs/decisions/decision-register.md`
 - `docs/traceability.md`
 - `docs/active-task.md`
-- `.github/instructions/tests.instructions.md`
-- Relevant workflow source, service code and tests
+- `.github/copilot-instructions.md`
+- `README.md`
+- Relevant tracked source, configuration, assets, and ignore rules
 
 ## Linked acceptance criteria
 
-- **AC-R3-01: Save an action.** Given an aging vehicle has no current action, when the manager selects `Price Reduction Planned`, enters an optional note and saves, then the row shows `Price Reduction Planned` as the current action.
-- **AC-R3-02: Persist after reload.** Given an action was saved on an aging vehicle, when the dashboard is reloaded using a new service instance reading the same local storage, then the vehicle still shows the saved action and note.
-- **AC-R3-03: No action for non-aging vehicle.** Given a vehicle has exactly 90 days in stock, when its row is displayed, then no control to add or edit an action is available.
-- **AC-R3-04: Action selection is required.** Given the action form is open for an aging vehicle, when the manager saves without selecting an action, then a validation message is shown and stored action remains unchanged.
-- **AC-R3-05: Preserve previous action on failure.** Given an aging vehicle has action A and forced failure is enabled, when the manager saves action B, then an error is shown and the row still shows action A.
-- **AC-R3-06: One current action.** Given an aging vehicle has action A, when the manager saves action B, then the row shows only action B.
-- **AC-R4-05: Failure can be forced without code change.** Given the app is running in a browser, when the reviewer enables forced failure without changing code and refreshes, then the service-error state is displayed. This criterion is Manual; automated tests supplement, not replace, its manual check.
+WBS 7.2 lists no linked acceptance-criteria IDs, and `docs/traceability.md` has no WBS 7.2 row. This task is verified against its own exit criteria only; no requirements or traceability links are inferred.
 
 ## Approved assumptions used
 
-- **A-05:** Action is available only for aging vehicles.
-- **A-06:** Log means one current action; a new save replaces the previous action.
-- **A-07:** A proposed action is one fixed-list value plus an optional note.
-- **A-10:** Persistence means the same browser and user after reload.
-- **A-15:** An action must be selected; a note alone is insufficient.
-- A failed save does not replace the last successful action; save is pessimistic.
-- Exactly 90 complete calendar days is not aging.
+- Preserve the established React, TypeScript, and Vite implementation and its intended assets.
+- Remove only tracked files with no references in application code, HTML, configuration, or maintained documentation.
+- Preserve supplied project context, assignment-reference material, templates, and CR source exports unless independently shown to be out of scope.
+- Existing logging-wrapper `console.info`/`console.error` events are intentional assessment observability, not ad-hoc debug output.
+- Keep generated build and dependency folders ignored and untracked.
 
 ## Relevant design choices and components
 
-- C-04: Service-backed reads and writes with explicit failure handling.
-- C-05: Reviewer can force service failure without changing code.
-- C-15: Persist the current proposed action locally for the assessment.
-- C-16: Preserve the previous action when a save fails.
-- `ProposedActionForm`, `App`, inventory row/action controls, `InventoryService`, and `MockInventoryService`.
-- Vitest and React Testing Library; mock storage is browser `localStorage`.
+- Repository structure separates React UI, pure TypeScript core rules, typed services/mock adapter, tests, documentation, and reviewer-only controls.
+- `InventoryService` and assessment observability are intentional design boundaries; do not remove their implementation.
+- Source assets must remain only when referenced or otherwise serving a documented project purpose.
 
 ## In scope
 
-- Review existing component and service tests against all linked criteria and task exit criteria.
-- Add or correct only directly relevant action-workflow test coverage if a gap is found.
-- Demonstrate that the required-action validation test detects a temporary validation defect, restore the implementation, and rerun tests.
-- Record the actual review, mutation result, verification and any correction in `docs/ai/collaboration-log.md`.
-- Run focused tests, full tests, lint and production build.
+- Inspect tracked files for confirmed-unused starter or other application assets.
+- Check for ad-hoc debug output and likely committed credential material without exposing any matches.
+- Check whether generated folders or environment files are tracked and whether ignore rules cover generated output.
+- Remove only clearly unused tracked files and retain intentional repository documentation/assets.
+- Record the actual cleanup and verification in the AI collaboration log.
 
 ## Explicitly out of scope
 
-- Changing application behavior unless a test exposes a task-relevant defect.
-- Changing requirements, assumptions, system design, decision statuses, WBS catalogue status or traceability status.
-- Implementing later WBS tasks, new features, dependencies, or production persistence.
-- Reclassifying the conflicting WBS/traceability status without owner approval.
-- Staging, committing or pushing.
+- Changing requirements, acceptance criteria, design decisions, README content, WBS catalogue, or traceability status.
+- Removing the supplied assignment/context image, CR source exports, documentation templates, or any other file without proving it unused.
+- Changing application behavior, dependencies, tests, or build configuration unless required to correct a task-scoped hygiene defect.
+- Staging, committing, or pushing.
 
 ## Expected files to inspect or change
 
-- Inspect: `src/App.tsx`, `src/components/ProposedActionForm.tsx`, `src/services/mock-inventory-service.ts`, `src/App.test.tsx`, and `src/services/mock-inventory-service.test.ts`.
-- Change if needed: `src/App.test.tsx` and/or `src/services/mock-inventory-service.test.ts`.
+- Inspect: tracked file list, source and public assets, references, `.gitignore`, and relevant documentation.
 - Change: `docs/active-task.md` and `docs/ai/collaboration-log.md`.
-- Do not change `docs/wbs.md`, `docs/requirements-baseline.md`, or `docs/traceability.md` while their status conflict remains unresolved.
+- Delete: only assets demonstrated to have no active or documentary references.
+- Preserve unrelated pre-existing uncommitted changes from the prior WBS task.
+- Do not change `docs/wbs.md`, `docs/requirements-baseline.md`, `docs/system-design.md`, or `docs/traceability.md`.
 
 ## Tests and verification
 
-- Focused: `npx vitest run src/App.test.tsx src/services/mock-inventory-service.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism`
-- Mutation challenge: temporarily remove the validation-message update from the action select's `onInvalid` handler, run only the missing-action validation test and confirm it fails because the alert is absent, restore the source, then rerun the focused tests.
-- Full suite: `npm test -- --pool=threads --maxWorkers=1 --no-file-parallelism`
-- Lint: `npm run lint`
-- Production build/typecheck: `npm run build`
-- Inspect `git diff --check`, `git status`, and final task diff; ensure the temporary mutation is fully restored.
+- Review references to every removed file and verify no application, HTML, configuration, or maintained documentation references remain.
+- Confirm there are no ad-hoc debug statements or tracked environment/generated files.
+- Run the complete test suite, `npm run lint`, `npm run build`, and `git diff --check`.
+- Inspect final status/diff; do not stage or commit.
 
 ## Exit criteria
 
-- Tests demonstrate successful save, validation failure, reload persistence, forced service failure, replacement of the current action, and no action control at exactly 90 days.
-- The validation test is reviewed and shown to detect the deliberate temporary defect; correct implementation is restored and tests pass.
-- AC-R4-05's manual verification remains distinct from automated tests.
-- The factual AI collaboration entry is written.
-- Focused/full tests, lint and build pass; no test is weakened.
-- The conflicting status in `docs/wbs.md` (Not Started) and `docs/traceability.md` (Complete) is reported and neither source status is silently changed.
+- Unused files removed.
+- Debug output removed.
+- Secrets and credentials removed.
+- Generated folders are not tracked.
+- Repository structure is intentional.
 
 ## Human-only completion steps
 
-- Review the full diff and confirm every changed test and AI-log statement is understood and factual.
-- Stage, commit and push only after owner review.
+- Review the complete diff and confirm all removals and cleanup evidence.
+- Stage and commit only after owner review.

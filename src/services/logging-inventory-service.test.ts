@@ -23,7 +23,7 @@ describe('withLogging', () => {
     const loggedService = withLogging(service, logger, createCorrelationId)
 
     await expect(loggedService.getVehicles()).resolves.toHaveLength(200)
-    await loggedService.updateVehicleAction('vehicle-001', {
+    await loggedService.updateVehicleAction('vehicle-003', {
       action: 'Price Reduction Planned',
     })
 
@@ -78,7 +78,7 @@ describe('withLogging', () => {
     }
     const loggedService = withLogging(service, logger, () => 'save-call-123')
 
-    const result = loggedService.updateVehicleAction('vehicle-001', {
+    const result = loggedService.updateVehicleAction('vehicle-003', {
       action: 'Price Reduction Planned',
     })
 
