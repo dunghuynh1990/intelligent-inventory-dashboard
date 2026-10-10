@@ -29,6 +29,7 @@ import {
 import { InventoryMiniPager, InventoryPager } from './components/InventoryPager'
 import { InventoryPresets } from './components/InventoryPresets'
 import { InventorySummary } from './components/InventorySummary'
+import { InventoryStatePanel } from './components/InventoryStatePanel'
 import './App.css'
 
 type AppProps = {
@@ -339,7 +340,14 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               Loading inventory…
             </p>
           )}
-          {error && (
+          {error && vehicles === null && !isLoading && (
+            <InventoryStatePanel
+              variant="error"
+              isRetrying={isLoading}
+              onRetry={handleRefresh}
+            />
+          )}
+          {error && vehicles !== null && (
             <div className="inventory-error" role="alert">
               {error}
               <button
@@ -376,7 +384,10 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               </button>
             </div>
           )}
-          {vehicles !== null && (
+          {vehicles !== null && vehicles.length === 0 && (
+            <InventoryStatePanel variant="empty" />
+          )}
+          {vehicles !== null && vehicles.length > 0 && (
             <InventorySummary
               counts={summaryCounts}
               ageBandProfile={ageBandProfile}
@@ -405,7 +416,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
               }
             />
           )}
-          {vehicles !== null && (
+          {vehicles !== null && vehicles.length > 0 && (
             <div className="inventory-browser">
               <InventoryPresets
                 presets={inventoryPresets}
@@ -464,9 +475,7 @@ function App({ inventoryService, clock = systemClock }: AppProps) {
                     </div>
                   )}
                 </div>
-                {vehicles.length === 0 ? (
-                  <p className="inventory-empty">No vehicles in inventory.</p>
-                ) : filteredVehicles.length === 0 ? (
+                {filteredVehicles.length === 0 ? (
                   <div className="inventory-no-results">
                     <span className="inventory-no-results__icon" aria-hidden="true">
                       <svg

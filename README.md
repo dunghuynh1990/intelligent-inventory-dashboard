@@ -24,7 +24,7 @@ Mock reviewer scenarios are selected with URL query parameters:
 - `?dataAgeMinutes=25` sets the simulated last-refreshed time 25 minutes ago.
 - `?demo=true` seeds three sample actions only when no action data is already stored.
 
-Parameters can be combined, for example `?demo=true&dataAgeMinutes=25`. Sample actions never overwrite existing saved actions. The data-age switch currently adjusts the displayed last-refreshed timestamp; the amber freshness indicator is part of later freshness UI work.
+Parameters can be combined, for example `?demo=true&dataAgeMinutes=25`. The reviewer bar at the top of the page (`src/dev/ReviewerBar.tsx`, outside the product components) sets `forceFailure` and `emptyInventory` for you; changing a switch reloads the page. Sample actions never overwrite existing saved actions. The data-age switch currently adjusts the displayed last-refreshed timestamp; the amber freshness indicator is part of later freshness UI work.
 
 ## Verification
 

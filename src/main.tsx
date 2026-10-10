@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { consoleLogger } from './observability/logger'
+import { ReviewerBar } from './dev/ReviewerBar'
 import {
   getMockDataAgeMinutes,
   MockInventoryService,
@@ -19,6 +20,7 @@ const inventoryService = withLogging(
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary logger={consoleLogger}>
+      <ReviewerBar />
       <App inventoryService={inventoryService} clock={clock} />
     </AppErrorBoundary>
   </StrictMode>,

@@ -1,0 +1,25 @@
+.reviewer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+  padding: 8px var(--page-gutter);
+  color: #dbe4ee;
+  background: #1e2a38;
+  font-size: 14px;
+}
+
+.reviewer-bar__title b {
+  color: #5bd0f5;
+}
+
+.reviewer-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reviewer-bar select {
+  min-height: 28px;
+}
+

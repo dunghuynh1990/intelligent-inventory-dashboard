@@ -888,19 +888,12 @@ describe('App', () => {
 
     render(<App inventoryService={service} />)
 
-    expect(await screen.findByText('No vehicles in inventory.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'No vehicles in inventory' }))
+      .toBeInTheDocument()
+    expect(screen.getByText(/This dealership has no vehicles in stock/)).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
-    const summary = screen.getByRole('region', { name: 'Inventory summary' })
-    expect(summary.querySelectorAll('.inventory-summary__card > dd > strong'))
-      .toHaveLength(4)
-    expect([...summary.querySelectorAll('.inventory-summary__card > dd > strong')]
-      .every((value) => value.textContent === '0')).toBe(true)
-    expect(within(summary).getByText('Aging stock · more than 90 days').parentElement)
-      .toHaveTextContent('0%')
-    expect(within(summary).getByRole('progressbar', {
-      name: 'Aging vehicles with an action',
-    })).toHaveAttribute('max', '1')
-    expect(within(summary).getByText('/ 0')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Inventory summary' }))
+      .not.toBeInTheDocument()
   })
 
   it('shows inventory-wide summary counts unaffected by filters and updates after saving an action', async () => {
@@ -950,7 +943,7 @@ describe('App', () => {
     render(<App inventoryService={service} />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'MockInventoryService forced failure is enabled',
+      'We could not load the inventory',
     )
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
 
@@ -971,7 +964,7 @@ describe('App', () => {
     render(<App inventoryService={service} />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'MockInventoryService forced failure is enabled',
+      'We could not load the inventory',
     )
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
@@ -979,7 +972,7 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'MockInventoryService forced failure is enabled',
+      'We could not load the inventory',
     )
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
